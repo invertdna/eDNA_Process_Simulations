@@ -1,0 +1,577 @@
+---
+title: "Understanding eDNA -- Simulations"
+author: "Kelly Shelton Gallego"
+date: "Feb 2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE, echo = FALSE, set.seed(108)}
+#note set.seed in setup header
+library(vegan)
+library(kableExtra)
+library(MCMCpack)
+library(here)
+library(broom)
+library(tidyverse, quietly = T)
+library(patchwork)
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, root.dir = here(), cache = T, set.seed(108))
+
+saveData = TRUE
+plottingFigures = TRUE 
+
+
+#note to future self, and anyone else reading this: I called Case B `left-skewed` in the variable names,
+#because the mode is on the left.  But Ole set me straight: in math terms, this is called `right-skewed`, 
+#because the median is to the right of the mode. So I changed the figure captions, 
+#but left the variable names as `left.skewed`, for ease of use.
+
+```
+
+
+```{r Load Custom Functions, echo=F, warning=FALSE, message=FALSE}
+source(here("Functions/FunctionsForSimulationPaper.R"))  #source custom functions
+
+betas <- read.csv(here("Data/Beta.Stan.Model.Results.csv")) #read in fits for empirical beta distributions
+
+```
+
+
+# Set up simulations
+```{r Set up simulations}
+nSims <- 100 #number of simulations at each number of PCR cycles
+pcrCycles <- c(seq(5, 50, by = 5))
+ntaxa <- 1000 
+
+#pre-set distributions of amplification efficiency
+  CaseA.approx.normal <- rbeta(ntaxa, 5, 5) 
+  CaseB.left.skewed <- rbeta(ntaxa, 0.5, 1.5)
+  CaseC.riaz12s <- beta_2_mixture(n.species = ntaxa,
+                              alpha1 = 0.01,
+                              beta1  = 10,
+                              alpha2 = betas[2,6],  #from data derived from Hänfling et al. 2016
+                              beta2  = betas[2,8],
+                              rho    = 0.9)
+  ampDistributions <- c("CaseA.approx.normal", "CaseB.left.skewed", "CaseC.riaz12s") #character vector for convenience
+
+#pre-set biomass distributions, expressed as a proportion of overall biomass
+  B.uniform <- as.vector(rep(1/ntaxa, times = ntaxa))  
+  B.lessVariable <- as.vector(rdirichlet(n = 1, alpha = rep(5, times = ntaxa)))  
+  B.moreVariable <- as.vector(rdirichlet(n = 1, alpha = rep(1, times = ntaxa))) #many more rare taxa
+  
+  BiomassDistributions <- c("B.uniform", "B.lessVariable", "B.moreVariable") #character vector for convenience
+```
+
+
+
+# Effect of Number of PCR Cycles
+
+```{r Effect of Number of PCR Cycles, echo = F}
+
+#set up results dataframe
+cycles.sim.results <- as.data.frame(matrix(NA, nrow=nSims*pcrCycles*length(ampDistributions), ncol=7))
+	colnames(cycles.sim.results) <- c("eDNA.Richness", "eDNA.Shannon", "eDNA.Simpson", "eDNA.InvSimpson", "eDNA.Pielou", "PCR.cycles", "amp.Distribution")
+	
+##########
+##########
+	# Simulation
+##########
+##########
+
+rowindex = 1
+for (i in 1:nSims){
+  for (j in 1:length(pcrCycles)) {
+     for (k in ampDistributions) {
+    B <- B.lessVariable  #community biomass proportions
+    cycles.sim.results[rowindex, 1:5]  <- unlist(diversity.metrics(ampFunction(B, 
+                                                                                ncycles = pcrCycles[j],
+                                                                                a = eval(parse(text = k))))) #default primer params, but varying number of cycles
+    cycles.sim.results[rowindex, 6] <- pcrCycles[j]
+    cycles.sim.results[rowindex, 7] <- k
+    rowindex <- rowindex + 1
+    }}}
+
+#save(cycles.sim.results, file = paste0("Data/SimRuns/cycles.sim.results.", Sys.time(), ".Rdata"))
+##########
+
+#Organize
+##########
+	
+  as_tibble(cycles.sim.results) %>%
+    gather(key = "key", value = "Index.value", -PCR.cycles, -amp.Distribution) %>% 
+    separate(key, into = c("Origin", "Index")) -> Tidy.comm.sim.results # make it a long table
+
+	
+	#Median richness over 20 cycles for CaseC.riaz12s
+  Tidy.comm.sim.results %>% 
+    filter(Index == "Richness", Origin == "eDNA", amp.Distribution == "CaseC.riaz12s", PCR.cycles > 20) %>% 
+    pull(Index.value) %>% 
+    median()
+
+  #Median richness at N cycles for CaseA.riaz12s
+  Tidy.comm.sim.results %>% 
+    filter(Index == "Richness", Origin == "eDNA", amp.Distribution == "CaseA.approx.normal", PCR.cycles == 40) %>% 
+    pull(Index.value) %>% 
+    median()
+
+```
+
+
+# Effect of Amplification Bias
+
+```{r Effect of Amplification Bias}
+nSims <- 100 #number of simulations at each number of PCR cycles
+pcrCycles <- 35  #here, constant number of cycles
+
+#set up results dataframe
+efficiency.sim.results <- as.data.frame(matrix(NA, nrow=nSims*length(pcrCycles)*length(ampDistributions)*length(BiomassDistributions), ncol= 8))
+	colnames(efficiency.sim.results) <- c("eDNA.Richness", "eDNA.Shannon", "eDNA.Simpson", "eDNA.InvSimpson", "eDNA.Pielou", "PCR.cycles", "amp.Distribution", "BiomassDistribution")
+
+##########
+##########
+	# Simulation
+##########
+##########
+
+set.shedding.rate <- rlnorm(ntaxa, 0.5, 0.5)
+	
+rowindex = 1
+for (i in 1:nSims){
+  for (j in BiomassDistributions) {
+     for (k in ampDistributions) {
+    B <- eval(parse(text = j))  #biomass proportions
+    
+    efficiency.sim.results[rowindex, 1:5]  <- unlist(diversity.metrics(ampFunction(B, 
+                                                                                ncycles = 35,
+                                                                                shedding.eDNA = set.shedding.rate,
+                                                                                a = eval(parse(text = k))))) #default primer params, but varying number of cycles
+    efficiency.sim.results[rowindex, 6] <- 35
+    efficiency.sim.results[rowindex, 7] <- k
+    efficiency.sim.results[rowindex, 8] <- j
+    rowindex <- rowindex + 1
+    }}}
+
+#save(efficiency.sim.results, file = paste0("../Data/SimRuns/efficiency.sim.results.", Sys.time(), ".Rdata"))
+##########
+	
+#apportioning variance:
+	aov.richness <- anova(lm(eDNA.Richness ~ amp.Distribution + BiomassDistribution, data = efficiency.sim.results))
+	aov.shannon <- anova(lm(eDNA.Shannon ~ amp.Distribution + BiomassDistribution, data = efficiency.sim.results))
+	
+	aov.richness$`Sum Sq`[1]/sum(aov.richness$`Sum Sq`) #amp.Distribution r-squared
+  aov.richness$`Sum Sq`[2]/sum(aov.richness$`Sum Sq`) #Biomass.Distribution r-squared
+	aov.richness$`Sum Sq`[3]/sum(aov.richness$`Sum Sq`) #residuals
+
+	aov.shannon$`Sum Sq`[1]/sum(aov.shannon$`Sum Sq`) #amp.Distribution r-squared
+  aov.shannon$`Sum Sq`[2]/sum(aov.shannon$`Sum Sq`) #Biomass.Distribution r-squared
+	aov.shannon$`Sum Sq`[3]/sum(aov.shannon$`Sum Sq`) #residuals
+
+  Tidy.eff.sim.results <- as.tibble(efficiency.sim.results) %>% # make it a long table
+    gather(key = "key", value = "Index.value", -amp.Distribution, -BiomassDistribution) %>% 
+    filter(key %in% c("Trad.Richness", "eDNA.Richness", "Trad.Shannon", "eDNA.Shannon")) %>% 
+    separate(key, into = c("Origin", "Index")) 
+  
+  Tidy.eff.sim.results %>% 
+    filter(Index == "Richness") %>% 
+    group_by(amp.Distribution) %>% 
+    summarise(median(Index.value))
+    
+    
+    
+  
+
+```
+
+
+
+```{r Likelihood of Dection by Amp Efficiency}
+set.shedding.rate = rlnorm(ntaxa, 0.5, 0.5)
+
+for (i in BiomassDistributions){
+  assign(gsub("B.", replacement = "eDNA.", i), 
+         value = sapply(1:100, FUN = function(x) ampFunction(B = eval(as.symbol(i)),
+            a = CaseA.approx.normal,
+            shedding.eDNA = set.shedding.rate,
+            ncycles = 35)) %>% 
+            specnumber() / 100
+  )}
+
+
+Detection <- rbind(
+  data.frame(counts = as.vector(eDNA.uniform), 
+             biomass = "uniform",
+             ampEff = CaseA.approx.normal), 
+
+  data.frame(counts = as.vector(eDNA.lessVariable), 
+             biomass = "lessVariable",
+             ampEff = CaseA.approx.normal), 
+
+  data.frame(counts = as.vector(eDNA.moreVariable), 
+             biomass = "moreVariable",
+             ampEff = CaseA.approx.normal)
+)
+
+
+
+#variance of detectability by biomass distribution
+Detection %>% 
+  mutate(decile = cut_number(ampEff, 10, label = F)) %>% 
+  filter(decile == 5) %>% 
+  group_by(biomass) %>% 
+  summarize(var.detectability = var(counts))
+
+
+```
+
+
+
+
+# Use of eDNA Abundance Indexing to track changes in biomass
+
+```{r Use of eDNA Abundance Indexing to track changes in biomass; Simulations}
+set.seed(108)
+#biomass df, w taxa in rows, and time points (here, n = 25) in columns.  
+Biomass.df <- data.frame(matrix(NA, ncol = 25, nrow = ntaxa))
+#Biomass.df[,1] <- B.uniform
+  for(i in 1:25){
+    Biomass.df[,i] <- as.vector(rdirichlet(n = 1, alpha = rep(5, times = ntaxa)))  #here, random rather than autoregressive process
+  }
+
+set.shedding.rate = rlnorm(ntaxa, .5, .5)
+
+#amplify eDNA from each of those communities to give eDNA counts
+eDNA.df <- as.data.frame(apply(Biomass.df, 2, 
+                               ampFunction, 
+                               a = CaseA.approx.normal,
+                               shedding.eDNA = set.shedding.rate,
+                               ncycles = 35))
+    keeprows <- which(specnumber(eDNA.df)>5) #for sensible analysis, require that each taxon be detected by eDNA 
+                                             #more than 20% of the time (5 times out of the 25 time points). Setting this limit at N = 1 also                                              #works, but correlations with only 0 and 1 aren't very sensible. 5 is an arbitrary number here, and the results are similar regardless of cutoff. Higher cutoff values select for greater statistical power to detect trends.
+    ampEfficiency<-CaseA.approx.normal[keeprows] #keep same taxa from vectors of ampEfficiency and shedding
+    shedding.eDNA<-set.shedding.rate[keeprows]
+    eDNA.total.read.number<-rowSums(eDNA.df)[keeprows] #per-taxon read number
+    eDNA.df<-eDNA.df[keeprows,]
+    eDNA.df<-cbind(eDNA.df, ampEfficiency, shedding.eDNA, eDNA.total.read.number) #keep this info handy
+    Biomass.df<-Biomass.df[keeprows,] #keep same taxa from biomass data.frame
+    
+    #reshape
+    Biomass.tidy <- Biomass.df %>% 
+      rownames_to_column("Taxon") %>% 
+      gather(key = "Timepoint", value = "Biomass", -Taxon)
+    
+    eDNA.tidy <- eDNA.df %>% 
+      rownames_to_column("Taxon") %>% 
+      gather(key = "Timepoint", value = "eDNA_reads", -Taxon, -ampEfficiency, -shedding.eDNA, -eDNA.total.read.number)
+```
+
+```{r Use of eDNA Abundance Indexing to track changes in biomass; Organization}
+
+eDNA.standardized <- ALLSTAND(eDNA.df[,1:25])  #create list of eDNA dataset standardized in 11 different ways, via vegan's decostand package.
+
+#normalize by column to create proportions, 
+eDNA.props <- as.data.frame(eDNA.standardized$total)
+#eDNA.resized.props <- as.data.frame(vegan::decostand(eDNA.df.resized[,1:25], method = "total", MARGIN = 2))
+
+#take fifth root of these to spread out values very near zero, and normalize by row max, to create index of eDNA abundance for each taxon
+eDNA.props.root <- eDNA.props^(1/5)
+eDNA.props.root.index <- vegan::decostand(eDNA.props.root, method = "max", MARGIN = 1) #just scaling each by the taxon maximum
+eDNA.props.root.index.tidy <- eDNA.props.root.index %>% 
+  rownames_to_column("Taxon") %>% 
+  gather(key = "Timepoint", value = "eDNA_root_index", -Taxon)
+
+#normalize proportions by row max, to create index of eDNA abundance for each taxon
+eDNA.index <- vegan::decostand(eDNA.props, method = "max", MARGIN = 1)
+eDNA.index.tidy <- eDNA.index %>% 
+  rownames_to_column("Taxon") %>% 
+  gather(key = "Timepoint", value = "eDNA_index", -Taxon)
+
+
+#make vegan-normalized datasets tidy
+indexnum <- 1
+for (i in names(eDNA.standardized)){
+  assign(paste0(i, "_tidy"), 
+    MAKETIDY(eDNA.standardized, index = indexnum)
+  )
+  indexnum <- indexnum +1
+}
+
+#create vector of dataset names to call later, for convenience
+datasetNames <- as.vector(sapply(names(eDNA.standardized), FUN = function(x) paste0(x, "_tidy")))
+
+
+#generate null data for comparison
+null.data <- PERMFUN(eDNA.df[,1:25])
+  colnames(null.data) <- paste0("X", 1:25)
+  rownames(null.data) <- rownames(eDNA.df)
+null.data.tidy <- null.data %>% 
+  rownames_to_column("Taxon") %>% 
+  gather(key = "Timepoint", value = "null_data", -Taxon)
+
+
+#pull into single long table
+index.results <- plyr::join_all(
+  list(
+    Biomass.tidy, 
+    eDNA.tidy, 
+    eDNA.props.root.index.tidy, 
+    eDNA.index.tidy, 
+    eval(as.symbol(datasetNames[3])),
+    eval(as.symbol(datasetNames[4])),
+    eval(as.symbol(datasetNames[6])),
+    eval(as.symbol(datasetNames[10])),
+    eval(as.symbol(datasetNames[11])),
+    null.data.tidy), 
+  type = "left")
+
+```
+
+```{r  Use of eDNA Abundance Indexing to track changes in biomass; Analysis}
+
+#Correlations for each measurement vs. log biomass
+for (i in 7:ncol(index.results)){
+  mymetric <- names(index.results)[i]
+  assign(paste0(mymetric, "_tidyCor"),
+         TIDYSPEARMAN(index.results, metric = mymetric)
+  )
+}
+
+#create big table of results
+tidy.cor <- do.call("rbind", 
+                   lapply(
+                     paste0(names(index.results)[7:ncol(index.results)], "_tidyCor"), 
+                     as.symbol)
+)
+
+tidy.cor$Statistic <- tidy.cor$Statistic %>% 
+  gsub(pattern = "eDNA_reads", replacement = "eDNA Reads") %>% 
+  gsub(pattern = "hellinger", replacement = "Hellinger") %>% 
+  gsub(pattern = "frequency", replacement = "Frequency") %>% 
+  gsub(pattern = "eDNA_index", replacement = "eDNA Index") %>% 
+  gsub(pattern = "log", replacement = "Log Read Count") %>% 
+  gsub(pattern = "normalize", replacement = "Normalized Read Count") %>% 
+  gsub(pattern = "rank", replacement = "Rank Abundance") %>% 
+  gsub(pattern = "null_data", replacement = "Null Data")
+  
+
+#order by index effectiveness
+StatOrder <- tidy.cor %>% 
+  group_by(Statistic) %>% 
+  summarise(medianRho = median(Rho)) %>% 
+  arrange(desc(medianRho)) %>% 
+  pull(Statistic)
+tidy.cor$Statistic <- factor(tidy.cor$Statistic, levels = StatOrder)
+
+
+#Pull out summary stats
+        tidy.cor %>% 
+          filter(Statistic == "eDNA Index") %>% 
+          pull(Rho) %>% 
+          median()
+        
+        tidy.cor %>% 
+          filter(Statistic == "eDNA Index") %>% 
+          pull(Rho) %>% 
+          getmode()
+        
+        
+        tidy.cor %>% 
+          filter(Statistic == "Normalized Read Count") %>% 
+          pull(Rho) %>% 
+          median()
+        tidy.cor %>% 
+          filter(Statistic == "Hellinger") %>% 
+          pull(Rho) %>% 
+          median()
+        
+        tidy.cor %>% 
+          filter(Statistic == "Null Data") %>% 
+          pull(Rho) -> null.Rho.vector
+        
+        tidy.cor %>% 
+          filter(Statistic == "Rank Abundance") %>% 
+          pull(Rho) -> rank.Rho.vector
+        
+        ks.test(rank.Rho.vector, null.Rho.vector)
+
+        
+#median Rho by quartile
+      index.results %>% 
+        group_by(Taxon) %>% 
+        summarise(read.mean = mean(eDNA.total.read.number)) %>% 
+        right_join(tidy.cor) %>% 
+        mutate(log.read.mean.quartile = cut_number(log(read.mean), n =4, labels = F)) %>%
+        mutate(log.read.mean.quartile = as.factor(log.read.mean.quartile)) %>% 
+        filter(!is.na(read.mean), Statistic == "eDNA Index") %>% 
+        group_by(log.read.mean.quartile) %>% 
+        summarize(median(Rho))
+
+#median Rho by ampEfficiency      
+      index.results %>% 
+        group_by(Taxon) %>% 
+        summarise(ampEfficiency = mean(ampEfficiency)) %>% 
+        left_join(tidy.cor) %>% 
+        filter(Statistic == "eDNA_index", ampEfficiency >= 0.6) %>% 
+        pull(Rho) %>% 
+        median()
+        
+     index.results %>% 
+        group_by(Taxon) %>% 
+        summarise(ampEfficiency = mean(ampEfficiency)) %>% 
+        left_join(tidy.cor) %>% 
+        filter(Statistic == "eDNA_index", ampEfficiency <= 0.35) %>% 
+        pull(Rho) %>% 
+        median()
+      
+```
+
+
+
+```{r Single-sample vs timeseries}
+
+
+#here, one Rho value per timepoint, where each of those Rho is based on all of the taxa at that time point.
+within.timepoint.Rho <- index.results %>% 
+  gather(key = Statistic, value = Value, -Taxon, -Timepoint, -Biomass, -ampEfficiency, -eDNA.total.read.number, -shedding.eDNA) %>% 
+  group_by(Timepoint, Statistic) %>% 
+  do(Rho = cor(.[,"Biomass"],
+                   .[,"Value"], 
+                   method = "kendall")) %>% 
+      mutate(Rho = as.vector(Rho)) %>% 
+    group_by(Statistic) %>%
+    summarise(medianSingleTimeRho = median(Rho))
+  
+within.timepoint.Rho$Statistic <- within.timepoint.Rho$Statistic %>% 
+gsub(pattern = "eDNA_reads", replacement = "eDNA Reads") %>% 
+  gsub(pattern = "hellinger", replacement = "Hellinger") %>% 
+  gsub(pattern = "frequency", replacement = "Frequency") %>% 
+  gsub(pattern = "eDNA_index", replacement = "eDNA Index") %>% 
+  gsub(pattern = "log", replacement = "Log Read Count") %>% 
+  gsub(pattern = "normalize", replacement = "Normalized Read Count") %>% 
+  gsub(pattern = "rank", replacement = "Rank Abundance") %>% 
+  gsub(pattern = "null_data", replacement = "Null Data")
+
+```
+
+
+
+
+```{r accumulation curve by cycle number}
+### For Supplementary Information
+
+accumm.sim.out <- as.data.frame(matrix(NA, nrow = 10, ncol = 1000))
+rowindex <- 1
+for (i in seq(5, 50, 5)){
+  accumm.sim.out[rowindex,] <- ampFunction(B = B.lessVariable,
+              ncycles = i, 
+              a = CaseA.approx.normal)
+  rowindex <- rowindex + 1
+  }
+
+accumm.sim.curves <- rarecurve(accumm.sim.out, step = 100, xlim = c(0, 10000), xlab = "Sample Size (reads)")
+
+accumm.sim.curves <- plyr::ldply(accumm.sim.curves, rbind) %>% 
+  mutate(Ncycles = seq(5,50,5)) %>% 
+  gather(key = "SampleSize", value = "Ntaxa", -Ncycles) %>% 
+  mutate(SampleSize = gsub("N", "", SampleSize))
+
+```
+
+
+```{r Ensemble Index across Primer Sets}
+### For Supplementary Information
+
+
+Biomass.df <- data.frame(matrix(NA, ncol = 25, nrow = ntaxa))
+  for(i in 1:25){
+    Biomass.df[,i] <- as.vector(rdirichlet(n = 1, alpha = rep(5, times = ntaxa)))  #here, random rather than autoregressive process
+  }
+set.shedding.rate = rlnorm(length(B), 0.5, 0.5)
+
+eDNA.df.CaseA.approx.normal <- as.data.frame(apply(Biomass.df, 2, 
+                               ampFunction, 
+                               a = CaseA.approx.normal,
+                               shedding.eDNA = set.shedding.rate,
+                               ncycles = 35))
+eDNA.df.CaseB.left.skewed <- as.data.frame(apply(Biomass.df, 2, 
+                               ampFunction, 
+                               a = CaseB.left.skewed,
+                               shedding.eDNA = set.shedding.rate,
+                               ncycles = 35))
+eDNA.df.CaseC.riaz12s <- as.data.frame(apply(Biomass.df, 2, 
+                               ampFunction, 
+                               a = CaseC.riaz12s,
+                               shedding.eDNA = set.shedding.rate,
+                               ncycles = 35))
+
+data.vec <- c("eDNA.df.CaseA.approx.normal", "eDNA.df.CaseB.left.skewed", "eDNA.df.CaseC.riaz12s")
+
+for (i in data.vec){
+  assign(i, eDNAINDEX(eval(as.symbol(i))))  #convert these datasets to eDNA index
+}  
+
+
+for (i in data.vec){
+  assign(i, 
+         eval(as.symbol(i)) %>% 
+          rownames_to_column("rowName") %>% 
+          gather(key = "timepoint", value = "Value", -rowName) %>% 
+          filter(!is.na(Value)) %>% 
+          group_by(rowName) %>% 
+          filter(sum(Value > 0) > 5) %>% #filter out those taxa that don't occur in at least X samples
+          mutate(AmpDistr = i)
+  )  #tidy these datasets 
+}  
+
+multilocus.tidy <- do.call("rbind", lapply(data.vec, function(x) eval(as.symbol(x)))) #bind rows
+
+ensemble.df <- multilocus.tidy %>% 
+                  group_by(rowName, timepoint) %>% 
+                  summarize(EnsembleIndex = mean(Value)) %>% 
+                  spread(key = timepoint, value = EnsembleIndex) %>% 
+                  column_to_rownames("rowName") %>% 
+                  sweep(MARGIN = 1, rowMax(.), FUN = "/")
+                  
+keeprows <- row.names(ensemble.df)[which(specnumber(ensemble.df)>5)] #for sensible analysis, require that each taxon be detected by eDNA 
+                                             #more than 20% of the time (5 times out of the 25 time points). Setting this limit at N = 1 also                                              #works, but correlations with only 0 and 1 aren't very sensible. 5 is an arbitrary number here, and the results are similar regardless of cutoff. Higher cutoff values select for greater statistical power to detect trends.
+
+    Biomass.df<-Biomass.df[match(keeprows, row.names(Biomass.df)),] #keep same taxa from biomass data.frame
+    
+    #reshape
+    Biomass.tidy <- Biomass.df %>% 
+      rownames_to_column("Taxon") %>% 
+      gather(key = "Timepoint", value = "Biomass", -Taxon)
+    
+    ensemble.tidy <- ensemble.df %>% 
+      rownames_to_column("Taxon") %>% 
+      gather(key = "Timepoint", value = "eDNA_index", -Taxon)
+
+
+    joint.tidy <- left_join(Biomass.tidy, ensemble.tidy) 
+    
+
+```
+
+
+
+```{r Plotting}
+if(saveData == TRUE) save.image(file = "simulations.workspace.Rdata")
+
+if(plottingFigures == TRUE) source(here("Analysis/plottingFigures.R"), echo = TRUE) 
+
+```
+
+
+```{r Create Supplemental Summary table for amp efficiencies}
+
+betas %>% 
+  unite(col = "Shape1#SD", Shape1, Shape1SD, sep = "#") %>% 
+  unite(col = "Shape2#SD", Shape2, Shape2SD, sep = "#") %>% 
+    kable("latex", booktabs = T) %>% 
+  writeLines("Manuscript/TableS1.tex")
+
+```
+
+
+

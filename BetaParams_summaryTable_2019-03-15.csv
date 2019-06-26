@@ -1,0 +1,12 @@
+"","Reference","GeneRegion","PrimerName","TargetGroup","SampleSize","Shape1","Shape1SD","Shape2","Shape2SD"
+"1","Port et al. 2016","12s","Riaz 12s","Fish",10,1.73,0.522,0.218,0.032
+"2","Hänfling et al. 2016","12s","Riaz 12s","Fish",22,4.82,1.475,0.164,0.016
+"3","Hänfling et al. 2016","Cytochrome B","L14841/H15149","Fish",22,4.889,1.608,0.165,0.016
+"4","Olds et al. 2016","Cytochrome B","L14841/H15149","Fish",6,1.324,0.409,0.341,0.065
+"5","Olds et al. 2016","12s","Am12s","Fish",6,1.311,0.395,0.342,0.064
+"6","Olds et al. 2016","16s","Ac16s","Fish",6,1.314,0.393,0.342,0.063
+"7","Olds et al. 2016","12s","Ac12s","Fish",6,1.305,0.392,0.338,0.063
+"8","Deiner et al. 2016","COI","Folmer","Eukaryotes",33,1.792,0.503,0.308,0.058
+"9","Ford et al. 2016","16s","Salmon-F/16s-R","Fish",5,1.385,0.424,0.305,0.053
+"10","Braukmann et al 2019","COI","C_LepFolF/C_LepFolR","Arthropods",374,2.173,0.281,0.802,0.15
+"11","Andruszkiewicz et al 2017","12s","MiFish","Fish",10,1.913,0.578,0.198,0.028
