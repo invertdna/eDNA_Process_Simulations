@@ -17,6 +17,10 @@ load(here("simulations.workspace.Rdata"))  #load in data from main analysis Rmd 
 #because the median is to the right of the mode. So I changed the figure captions, 
 #but left the variable names as `left.skewed`, for ease of use w the main data script.
 
+#colors
+#chagall <- c("#3F6F76", "#69B7CE", "#62496F")
+#ernst <- c("#91323A","#3A4960","#D7C969")
+#kandinsky <- c("#5D7388", "#E5A729", "#8AAE8A")
 
 ######Figure 1: Biomass distributions
       pdf("Figures/BiomassDistributions.pdf", width = 7, height = 4 )
@@ -38,7 +42,10 @@ load(here("simulations.workspace.Rdata"))  #load in data from main analysis Rmd 
                            name = "Biomass Distribution") +
         theme_bw() +
         theme(legend.position = c(.75, 0.35)) +
-        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+        theme(axis.title = element_text(size=14),
+              axis.text=element_text(size=12),
+              panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank())
       dev.off()
 
       
@@ -52,7 +59,10 @@ load(here("simulations.workspace.Rdata"))  #load in data from main analysis Rmd 
                                     annotate("text", x = 0.9, y = 0.9, label = "B", size = 10) +
                                     xlab("") + xlim(c(0,1)) +
                                     ylab("Probability") + theme_bw() +
-                                    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+                                    theme(axis.title = element_text(size=14),
+                                          axis.text=element_text(size=12),
+                                          panel.grid.major = element_blank(), 
+                                          panel.grid.minor = element_blank())
         
         CaseA.approx.normal.plot <- ggplot(data = as.data.frame(CaseA.approx.normal), 
                                     aes(CaseA.approx.normal)) + 
@@ -62,7 +72,10 @@ load(here("simulations.workspace.Rdata"))  #load in data from main analysis Rmd 
                                     annotate("text", x = 0.9, y = 0.9, label = "A", size = 10) +
                                     xlab("") + xlim(c(0,1)) +
                                     ylab("Probability") + theme_bw() +
-                                    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+                                    theme(axis.title = element_text(size=14),
+                                          axis.text=element_text(size=12),
+                                          panel.grid.major = element_blank(), 
+                                          panel.grid.minor = element_blank())
         
         CaseC.riaz12s.plot <- ggplot(data = as.data.frame(CaseC.riaz12s), 
                                aes(CaseC.riaz12s)) + 
@@ -72,7 +85,10 @@ load(here("simulations.workspace.Rdata"))  #load in data from main analysis Rmd 
                               annotate("text", x = 0.9, y = 0.9, label = "C", size = 10) +
                               xlab("Amplification Efficiency") + xlim(c(0,1)) +
                               ylab("Probability") + theme_bw() +
-                              theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+                              theme(axis.title = element_text(size=14),
+                                    axis.text=element_text(size=12),
+                                    panel.grid.major = element_blank(), 
+                                    panel.grid.minor = element_blank())
         
 
         pdf("Figures/AmplificationDistributions.pdf")
@@ -87,13 +103,17 @@ load(here("simulations.workspace.Rdata"))  #load in data from main analysis Rmd 
                 filter(Origin == "eDNA") %>% 
                 ggplot(aes(y = Index.value, x = PCR.cycles, color = amp.Distribution)) +
                 geom_point(alpha = .1) +
-                stat_smooth(se = F, span = .55, method = "loess", alpha = .5) +
+                #geom_line() +
+                stat_smooth(se = F, span = .3, method = "loess", alpha = .5) +
                 annotate("text", x = 47, y = 1040, label = "A", size = 10) +
                 xlab("PCR Cycles") + ylab("Richness") +
-                scale_color_manual(values = RColorBrewer::brewer.pal(6, "PuBu")[c(3:6)],
+                scale_color_manual(values = RColorBrewer::brewer.pal(9, "PuBu")[c(3,5,8)],
                                    guide = F) +
                 theme_bw()+
-                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+                theme(axis.title = element_text(size=14),
+                      axis.text=element_text(size=12),
+                      panel.grid.major = element_blank(), 
+                      panel.grid.minor = element_blank())
               
               
               cycles.Shannon.plot <- Tidy.comm.sim.results %>% 
@@ -101,14 +121,21 @@ load(here("simulations.workspace.Rdata"))  #load in data from main analysis Rmd 
                 filter(Origin == "eDNA") %>% 
                 ggplot(aes(y = Index.value, x = PCR.cycles, color = amp.Distribution)) +
                 geom_point(alpha = .1) +
-                stat_smooth(se = F, span = .55, method = "loess", alpha = .5) +
+                #geom_line() +
+                stat_smooth(se = F, span = .4, 
+                            method = "loess", 
+                            alpha = .5) +
                 annotate("text", x = 47, y = 6.5, label = "B", size = 10) +
                 xlab("PCR Cycles") + ylab("Shannon Index") +
-                scale_color_manual(values = RColorBrewer::brewer.pal(6, "PuBu")[c(3:6)],
+                scale_color_manual(values = RColorBrewer::brewer.pal(9, "PuBu")[c(3,5,8)],
                                    labels = c("Case A : \n  Symmetrical", "Case B : \n  Right-Skewed", "Case C : \n  Limited-Target"),
                                    name = "Amplification \nEfficiency") +
                 theme_bw()+
-                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), plot.margin = margin(r = 1, unit = "cm"))
+                theme(axis.title = element_text(size=14),
+                      axis.text=element_text(size=12),
+                      panel.grid.major = element_blank(), 
+                      panel.grid.minor = element_blank(), 
+                      plot.margin = margin(r = 1, unit = "cm"))
               
         pdf("Figures/SummaryStats_by_pcrCycles_and_ampDistribution.pdf", width = 12, height = 6)
           cycles.Richness.plot + cycles.Shannon.plot  #using patchwork to do multiplot
@@ -122,23 +149,28 @@ load(here("simulations.workspace.Rdata"))  #load in data from main analysis Rmd 
           ggplot(aes(x= amp.Distribution, y = Index.value, fill = BiomassDistribution))+
           geom_boxplot(outlier.size = 0) +
           #facet_grid(amp.Distribution~., scales = "free_y") +
-          scale_fill_manual(values = RColorBrewer::brewer.pal(6, "PuBu")[c(4:6)], name = "Biomass\nDistribution", guide = FALSE) +
+          scale_fill_manual(values = RColorBrewer::brewer.pal(9, "PuBu")[c(3,5,8)], name = "Biomass\nDistribution", guide = FALSE) +
           theme_bw() +
           theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
           scale_x_discrete(labels = c("Case A : \n  Symmetrical", "Case B : \n  Right-Skewed", "Case C : \n  Limited-Target")) +
           ylab("Richness") + xlab("") +
-          theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+          theme(axis.title = element_text(size=14),
+                axis.text=element_text(size=12),
+                panel.grid.major = element_blank(), 
+                panel.grid.minor = element_blank())
         
         ampShannon.plot <-     Tidy.eff.sim.results %>% 
           filter(Origin == "eDNA", Index == "Shannon") %>% 
           ggplot(aes(x= amp.Distribution, y = Index.value, fill = BiomassDistribution))+
           geom_boxplot(outlier.size = 0) +
           #facet_grid(amp.Distribution~., scales = "free_y") +
-          scale_fill_manual(values = RColorBrewer::brewer.pal(6, "PuBu")[c(4:6)], 
+          scale_fill_manual(values = RColorBrewer::brewer.pal(9, "PuBu")[c(3,5,8)], 
                             name = "Biomass\nDistribution",
                             labels = c("Moderately Variable \n (Gamma = 5)", "More Variable \n(Gamma = 1)", "Uniform")) +
           theme_bw() +
-          theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+          theme(axis.text.x = element_text(angle = 45, hjust = 1),
+                axis.title = element_text(size=14),
+                axis.text=element_text(size=12)) +
           scale_x_discrete(labels = c("Case A : \n  Symmetrical", "Case B : \n  Right-Skewed", "Case C : \n  Limited-Target")) +
           ylab("Shannon Index") + xlab("") +
           theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
@@ -158,13 +190,16 @@ load(here("simulations.workspace.Rdata"))  #load in data from main analysis Rmd 
           ggplot(aes(y = counts, x = ampEff, color = biomass)) +
           geom_point(size = .5) +
           stat_smooth(method="glm", method.args=list(family="binomial"), se=TRUE) +
-          scale_color_manual(values = RColorBrewer::brewer.pal(6, "PuBu")[c(2,4,6)],
+          scale_color_manual(values = RColorBrewer::brewer.pal(9, "PuBu")[c(3,5,8)],
                              labels = c("Uniform", "Less Variable", "More Variable"),
                              name = "Biomass Distribution") +
           ylab("Likelihood of Detection") + xlab("Amplification Efficiency") +
           theme_bw() +
           theme(legend.position = c(.75, 0.25)) +
-          theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+          theme(axis.title = element_text(size=14),
+                axis.text=element_text(size=12),
+                panel.grid.major = element_blank(), 
+                panel.grid.minor = element_blank())
         dev.off()
 
 
@@ -172,7 +207,7 @@ load(here("simulations.workspace.Rdata"))  #load in data from main analysis Rmd 
 ######Figure 7: Index performance
         
  
-    pdf(here("Figures/IndexPerformance.pdf"), height = 10, width = 7)
+    pdf(here("Figures/IndexPerformance.pdf"), height = 14, width = 7)
       index.results %>% 
         group_by(Taxon) %>% 
         summarise(read.mean = mean(eDNA.total.read.number, na.rm = T)) %>% 
@@ -186,18 +221,21 @@ load(here("simulations.workspace.Rdata"))  #load in data from main analysis Rmd 
         mutate(medianRho = median(Rho), modeRho = getmode(Rho)) %>% 
         filter(!Statistic %in% c("total", "chi.square", "pa", "range", "standardize", "max", "eDNA_root_index")) %>%
         ggplot(aes(Rho)) + 
-        geom_histogram(aes(fill =log.read.mean.quartile), color = NA, binwidth = 0.02) + 
+        geom_histogram(aes(fill =log.read.mean.quartile), color = NA, binwidth = 0.02, alpha = .9) + 
         geom_vline(aes(group = Statistic, xintercept = medianSingleTimeRho + 0.015), color = "grey") + 
         geom_vline(aes(group = Statistic, xintercept = medianRho + 0.015), color = "red") + 
         geom_vline(aes(group = Statistic, xintercept = modeRho + 0.015), color = "darkred") + 
         facet_grid(Statistic ~ ., scales = "free_y") +
-        scale_fill_manual(values = RColorBrewer::brewer.pal(6, "PuBu")[3:6]) +
+        scale_fill_manual(values = RColorBrewer::brewer.pal(9, "PuBu")[c(3,4,6,8)]) +
         ylab("Count") + 
-        xlab("Spearman's Rho Correlation with Biomass") +
+        xlab(expression("Spearman's " ~ rho ~ "Correlation with Biomass")) +
         guides(fill=guide_legend(title="Amplicon\nFrequency\nQuartile")) +
         theme(legend.title = element_text(size=10)) +
         theme_bw() +
-        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+        theme(axis.title = element_text(size=14),
+              axis.text=element_text(size=12),
+              panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank()) +
         xlim(c(0,1)) #note this cuts off half of the null distribution, but that is nonsense anyway, since it's a negative correlation.
       dev.off()
 
@@ -213,11 +251,18 @@ pdf(here("Figures/Rho_by_AmpEfficiency.pdf"), height = 7, width = 5)
         filter(Statistic == "eDNA Index") %>% 
         ggplot(aes(x = ampEfficiency, y = Rho, color = `Relative Mean Biomass`)) +
         geom_point() +
+        ylim(c(0,1)) +
+        ylab(expression("Spearman's" ~ rho)) +
         xlab("Amplification Efficiency") +
-        scale_color_continuous(name = "Relative Mean Biomass") +
+        scale_color_gradient(name = "Relative \nMean \nBiomass", 
+                             low = RColorBrewer::brewer.pal(9, "PuBu")[3],
+                             high = RColorBrewer::brewer.pal(9, "PuBu")[8]) +
         theme_bw() +
-        theme(legend.position = c(.75, 0.25)) +
-        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+        theme(legend.position = c(.90, 0.25)) +
+        theme(axis.title = element_text(size=14),
+              axis.text=element_text(size=12),
+              panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank())
 dev.off()      
       
       
@@ -323,15 +368,21 @@ dev.off()
       
       customColors <- colorRampPalette(brewer.pal(9, "BuPu")[3:9])(10) #make a 10-color palette
     
-pdf("Figures/AccumulationCurve_Ncycles.pdf")
+pdf("Figures/AccumulationCurve_Ncycles.pdf", width = 10, height = 7)
         accumm.sim.curves %>% 
         ggplot(aes(x = as.numeric(SampleSize), y = as.numeric(Ntaxa), color = as.ordered(Ncycles))) +
         geom_line(size = 1.3) +
+          facet_grid(~ AmpEfficiency) +
         xlim(c(0, 25000)) +
-        xlab("Sample Size (Reads") + ylab("Species Detected") + 
+        xlab("Sample Size (Reads)") + ylab("Species Detected") + 
         scale_color_manual(values = customColors, name = "PCR Cycles") +
         theme_bw() +
-        theme(legend.position = c(.75, .1)) +
+        theme(legend.position = "bottom",
+              axis.title = element_text(size=14),
+              axis.text=element_text(size=12),
+              axis.text.x = element_text(angle = 45, hjust = 1),
+              panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank()) +
         guides(color=guide_legend(ncol=5))
 dev.off()      
       
@@ -351,9 +402,12 @@ dev.off()
         geom_vline(aes(xintercept = medianRho ), color = "red", size = 1.2) + 
         geom_vline(aes(xintercept = modeRho ), color = "darkred", size = 1.2) + 
         ylab("Count") + 
-        xlab("Spearman's Rho Correlation with Biomass") +
+        xlab(expression("Spearman's " ~ rho ~ "Correlation with Biomass")) +
         theme_bw() +
-        theme(legend.title = element_text(size=10), panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+        theme(legend.title = element_text(size=10), 
+              axis.title = element_text(size=14), 
+              panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank()) +
         xlim(c(0,1)) #note this cuts off half of the null distribution, but that is nonsense anyway, since it's a negative correlation.
       dev.off()
       

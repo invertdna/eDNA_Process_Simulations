@@ -1,0 +1,1020 @@
+\def\tightlist{}
+\documentclass[fleqn,11pt,lineno]{wlscirep} 
+\usepackage{lineno}
+\usepackage{setspace}
+
+\linespread{1.6} %line spacing document-wide
+
+\title{Understanding PCR Processes to Draw Meaningful Conclusions from Environmental DNA Studies}
+
+\author[1,*]{Ryan P. Kelly}
+\author[2]{Andrew Olaf Shelton}
+\author[1,2]{Ram\'{o}n Gallego}
+\affil[1]{University of Washington, School of Marine and Environmental Affairs, Seattle, Washington USA}
+\affil[2]{Northwest Fisheries Science Center, NOAA Fisheries, Seattle, Washington USA}
+
+\affil[*]{rpkelly@uw.edu}
+
+\begin{abstract}
+As environmental DNA (eDNA) studies have grown in popularity for use in ecological applications, it has become clear that their results differ in significant ways from those of traditional, non-PCR-based surveys. In general, eDNA studies that rely on amplicon sequencing may detect hundreds of species present in a sampled environment, but the resulting species composition can be idiosyncratic, reflecting species' true biomass abundances poorly or not at all. Here, we use a set of simulations to develop a mechanistic understanding of the processes leading to the kinds of results common in mixed-template PCR-based (metabarcoding) studies. In particular, we focus on the effects of PCR cycle number and primer amplification efficiency on the results of diversity metrics in sequencing studies. We then show that proportional indices of amplicon reads capture trends in taxon biomass with high accuracy, particularly where amplification efficiency is high (median correlation up to 0.97). Our results explain much of the observed behavior of PCR-based studies, and lead to recommendations for best practices in the field.
+\end{abstract}
+
+\begin{document}
+
+
+\flushbottom
+\maketitle
+\thispagestyle{empty}
+\linenumbers
+
+\section{Introduction}\label{introduction}
+
+Surveying the natural world by amplifying and sequencing DNA from environmental sources such as water, air, or soil has long been commonplace in microbial ecology \citep[see, e.g.,][]{rondon2000cloning, ogram1987extraction, turnbaugh2007human} , but has recently become popular for characterizing ecological communities of eukaryotes \cite{port2016assessing, stat2017ecosystem, kelly_using_2014, valentini2016next, taberlet_towards_2012, de2015eukaryotic}. Because the source of samples is the environment itself rather than specific target organisms, the data resulting from such studies have become known as environmental DNA (eDNA) \cite{taberlet_towards_2012}; the ultimate source of genetic material in the environment may be living or waste cells or extracellular DNA \cite{taberlet_towards_2012}. Techniques that take advantage of such data may include non-PCR-based methods such as hybridization, but generally include an amplification step such as quantitative PCR, digital-droplet PCR, or traditional PCR from mixed templates followed by high-throughput sequencing. This last technique is known as metabarcoding, eDNA amplicon-sequencing, or more generally, marker-gene analysis.
+
+Patterns of diversity have been a focus of metabarcoding studies \cite{li2018estimating, deiner2016environmental}, but in many cases, results from eDNA sequencing may differ substantively from results from traditional, non-PCR-based biodiversity surveys \cite{kelly2017multilocus, smart2015environmental,evans2017comparative, knudsen2019species}.  To evaluate metabarcoding as a tool for assessing biodiversity, we provide a mechanistic, simulation-based approach to understanding the processes that lead ultimately to metabarcoding data.  
+
+Ecological inquiry often begins with uncovering patterns of biodiversity, yet sampling biodiversity is inherently difficult and the methods highly varied. Methods for surveys of fish diversity differ fundamentally from surveys of birds or trees. Every way of surveying the world has a different set of processes intervening between the sampled phenomenon (say, the number of different types of snails on a rock) and the recorded observation (the number of snails recorded, trapped, or otherwise counted). The reason that different survey techniques offer different results and insights -- even for the same survey target -- is because these intervening processes differ between techniques. Some methods have only trivial intervening processes: counts of snails on a rock are subject to ascertainment bias and sampling error, but we expect these counts to be reasonably direct reflections of the ``truth'' that exists in the world. Environmental DNA provides the potential for standardizing of sampling among disparate species groups -- for example, a single sampled bottle of ocean water can be used to survey fish, plankton, benthic invertebrates and mammals. However, producing biodiversity estimates from eDNA sequences requires complex laboratory processes -- from collection to extraction through amplification and sequencing -- that may substantially affect estimates of biodiversity derived from eDNA.
+
+Specifically, eDNA methods often use PCR, which causes two key differences from other sampling methods. First, PCR exponentially increases the very low concentrations of DNA collected in the environment to make amounts sufficient for further analysis. This exponential process means that stochasticity and small biases in the PCR process can lead to large differences the abundance of each species' amplicons relative to DNA concentrations in the field \cite{pawluczyk2015quantitative, odonnellPrimers, deagle_quantifying_2013}. The issues surrounding amplification bias in mixed-template PCRs have long been documented \cite{polz1998bias, suzuki1996bias}, and in the metabarcoding context have recently come under useful scrutiny \cite{elbrecht2015can, mclaren2019consistent, pinol2019choice}.  Compounding the bias problem is a crucial second difference between PCR-based methods and others: DNA from different species often amplifies at different rates, such that each PCR cycle preferentially amplifies templates with greater affinity for the primers being used (\textit{i.e.}, amplification bias) \cite{bellemain2010its, clarke2014environmental}. Furthermore, in contrast to many traditional sampling techniques, metabarcoding datasets are compositional \cite{gloor2017microbiome}: their information content has an ``arbitrary total imposed by the instrument'' \cite{gloor2017microbiome}, which necessarily means amplicon counts are not directly related to counts of template molecules in the sampled environment. Many PCR-based analyses of ecological communities gloss over potential biases that arise from using genetic methodologies, and few attempt to quantify either the degree of this bias or its effects on study results. However, understanding the results of metabarcoding surveys requires that we understand how these processes influence estimates of diversity and other survey outcomes. 
+
+Here, we briefly review the processes involved in metabarcoding surveys. We then simulate sets of biological communities and subject them to simulated PCR-based processing. We independently vary the important axes of variation for eDNA surveys -- specifically the number of PCR cycles and the distribution of taxon-specific amplification efficiencies -- to illustrate the effects of these parameters on estimates of biodiversity. We base these simulations on real-world use-cases, parameterizing our models using empirical data where possible. We then evaluate the quantitative performance of taxon-specific amplicon-abundance indices vs. biomass in simulations, finding that proportional indices of eDNA reads capture trends in taxon biomass with high accuracy, particularly where amplification efficiency is high. Our results explain much of the observed behavior of PCR-based studies, and lead to recommendations for best practices in the field.
+
+
+\vspace{2em}
+
+\section{Methods}\label{methods}
+
+\subsection*{Major Processes Involved in Metabarcoding}
+
+At least five major processes drive patterns of metabarcoding data and affect estimates of biodiversity. Genetic material sampled from an environment derives from some living species (\textit{process 1}). For single-celled species, an organism and its representative genome are coincident, while for multicellular species the sampled DNA may derive from a residual or waste cell (or a gamete) in the environment.  DNA presence in the environment -- having been created by the source organism and not yet degraded or lost -- is then the first process with which we are concerned. In either the single- or multicellular case, the time-averaged DNA shed into the environment is proportional to the biomass of a given species, although the proportionality constant may vary between species [CITE degradation studies]. This DNA degrades rapidly in ambient conditions \cite{thomsen_detection_2012-1, sassoubre2016quantification} and may be transported away from the source organism \cite{deiner_transport_2014-1, wilcox2016understanding}, taken up by other organisms via transformation \cite{chen2004dna}, or adsorbed onto soil or other substrates \cite{lorenz1987adsorption}; these mechanisms may be treated together as forms of effective eDNA loss. For a fixed population in a closed area, we hypothesize the observable DNA concentration will be an equilibrium between the generation and loss functions; our simulations assume equilibrium in order to model eDNA template concentration as a point estimate. 
+
+This DNA is then sampled by a researcher (\textit{process 2}), extracted and purified from its surrounding cellular matrix (\textit{process 3}), and subject to PCR amplification (\textit{process 4}). This amplification step is of special importance, since it is what most obviously distinguishes genetic sampling methods from traditional ecological sampling. In some applications, a sample is subjected to multiple PCR processes, but at minimum, the amplicons are sequenced (\textit{process 5}) before bioinformatic analysis. Because these (minimum) five processes occur in series, random and systematic errors at one step propagate through the analytical chain \cite{shelton2016framework}. It is therefore important to understand each process individually so that we can estimate their cumulative effects on measures of diversity. 
+
+Defining the target community is an important \textit{a priori} component of all studies of biodiversity.  While this is widely appreciated in the ecological literature, it is often overlooked in metabarcoding studies. For example, ecologists might study the biodiversity of forest trees \cite{Condit1996} or coral reef fish \cite{mora2003patterns} or sessile invertebrates \cite{witman2004relationship}. In the metabarcoding context, very specific primer sets targeting a relatively small number of taxa (e.g., vertebrates \cite{riaz_ecoprimers:_2011, yamamoto2017environmental}) may have a well-defined target group, but nevertheless the absence of a taxon from a sequenced sample does not indicate the absence of that taxon from the environment. Instead, the unsampled species simply may not have been susceptible to that set of PCR primers, and so failed to amplify. The result is often a dataset that represents many taxa, but these taxa are an unknown fraction of a larger (and perhaps spatially or taxonomically undefined) pool of species present. Here, for clarity of illustration, we treat the 1000 simulated species as the eukaryotic community of a nearshore marine habitat, but we note these simulations are broadly applicable to most ecosystems in which PCR-based studies occur.
+
+\subsection*{Community Simulations}
+
+To test the effect of eDNA processing on estimates of abundance and biodiversity, we simulated biological communities and performed simulations of metabarcoding processes on each, as described below.
+
+\begin{quote}
+\textbf{Biomass in the environment (\textit{process 1})}:
+We generate three different distributions of biomass proportions to test for an effect of these underlying community distributions on metabarcoding diversity estimates (Figure 1). Let $B_{i}$ be the proportional biomass of species $i$, for $i=1,...,N$ species such that $\sum_{i}^{N} B_i = 1$.   
+First, we simulate a community in which all species have identical proportional biomass,  
+\begin{equation}
+	$$B_i = \dfrac{1}{N}$$
+\end{equation}
+	
+and refer to this as our ``uniform" community. The two other communities are defined using a symmetric Dirichlet distribution to describe communities with variation in biomass among species,
+\begin{equation}
+	$$B_i \sim Dirichlet(\gamma)$$	
+	\end{equation}
+We define $\gamma = 5$ for one community and $\gamma = 1$ for the second; smaller values of $\gamma$ correspond to more variation among species in proportional biomass. Across all  three of these community distributions, the number of species is consistent, as is the expected proportion of each species (i.e., the mean).  These characteristics facilitate comparisons across distributions by reducing the differences under consideration to one dimension.  We note in particular that in using proportional (rather than absolute) biomass, we can flexibly capture changes in community structure appropriate to those that genetic assays likely respond to: because PCR is a competitive reaction among template molecules, absolute biomass (and hence absolute DNA concentrations) are less relevant than their proportions in the sampled community.  We simulate 100 independent communities of 1000 taxa for each community biomass distribution.
+
+\textbf{Genetic Material in the Environment (eDNA, \textit{process 2})}. We assume that organisms shed DNA into the environment, $D_{i}$, as a function of the biomass of species $i$ times the shedding rate of that species, $s_i$. While loss of DNA from the environment plays a vital role determining the equilibrium DNA concentration in the environment, we assume that loss of eDNA from the environment is constant among species, and therefore equilibrium DNA concentration is proportional to DNA shedding. Here, we inform our shedding rate parameters using Sassoubre et al. 2016 \cite{sassoubre2016quantification}, which found shedding rates (in pg/hour) among three Pacific fishes to vary by two orders of magnitude; accordingly we sample simulated shedding rates from a distribution with wide variance and a moderate central tendency. 
+\begin{equation}
+		$$D_{i} = B_{i}s_{i}$$ \\
+\end{equation}		
+\begin{equation}		
+	$$s_i \sim LogNormal(0.5, 0.5)$$
+\end{equation}	
+		
+		We note that this simulation is spatially inexplicit, and so the statistical distributions of biomass and eDNA are not intended to reflect a particular spatial distribution.
+		
+		
+\textbf{DNA Collection and Extraction (\textit{process 3})}. We assume DNA is collected in proportion to its abundance in the environment and extracted with equal efficiency from all species present.
+				
+
+\textbf{DNA Amplification during PCR (\textit{process 4})}.  Because each taxon (or, more broadly, template molecule) has its own amplification efficiency for a given set of primers, we describe three simulations according to the distribution of these efficiency parameters among the taxa in a community (Figure 2). We treat biases arising from sequence variation or from secondary structure (``polymerase bias''; see e.g., \cite{braukmann2019}) as equivalent for the present purposes. For all scenarios, we use the same relationship for translating among-taxon variation in amplification efficiency into the number of amplicons observed for taxon $i$, $A_i$, at the conclusion of the PCR. Let $a_i$ be the binding affinity for the PCR primers to species $i$, and $N_{PCR}$ be the number of PCR cycles, then
+
+\begin{equation}	
+			$$A_{i} = D_{i}(a_{i}+1)^{N_{PCR}} \epsilon $$ 
+\end{equation}	
+
+with $\epsilon$ representing a multiplicative process error term which adds a small amount of stochasticity to the observed amplicons for each species. We model $\epsilon$ as a lognormal distribution, $\epsilon \sim LogNormal(\mu,\sigma^2)$ with $\mu = 0$ and $\sigma = 0.05$.
+
+Key parameters governing the observed number of amplicons from a given eDNA sample are the DNA concentration, $D_i$, and the amplification efficiency for each species, $a_i$. For a given eDNA sample, $D_i$ is constant, so we focus on three distributions of amplification efficiencies corresponding to biological use-cases. For each case, we model the amplification efficiency for each species as a draw from a beta distribution,
+
+\begin{equation}		
+		$$	a_i \sim Beta(\alpha, \beta) $$
+\end{equation}		
+		
+or as a mixture of two Beta distributions, 		
+
+\begin{equation}	
+			$$a_i \sim \big( \pi_1 Beta(\alpha_1, \beta_1) + (1-\pi_1)Beta(\alpha_2, \beta_2) \big)$$
+\end{equation}	
+
+		Where $\pi_1$ is the weight for the first mixture component and so $0 < \pi_1 < 1 $. 
+		
+We use a mixture of only two distributions, but future work could consider mixtures with larger number of component distributions (for example, where different taxonomic groups make up different components of the mixture). The parameter $a_i$ is equivalent to the measure of amplification efficiency, $E$ that is often reported for an individual species in qPCR studies \cite{Ruitger2009}.
+
+Any primer set will be evaluated relative to its intended target set of taxa. Put differently, the way we think about primer efficiency depends strongly upon taxonomic scale. Primers designed to amplify vertebrates exclusively might behave very well (i.e., have relative amplification efficiencies clustered around one) within Vertebrata, but across the tree of life, vertebrates are a vanishingly small fraction of biodiversity. Accordingly, at the scale of the tree of life, these same primers would have efficiencies clustered near zero (they do not amplify most lifeforms at all) with a small proportion of target molecules (vertebrate species) amplifying quite well. For simplicity and ease of comparison, we evaluate our simulated primers on a common taxonomic scale, Eukaryota. 
+
+We drew empirical data from published metabarcoding papers to parameterize our models, finding several recent papers \cite{hanfling2016environmental, port2016assessing, deiner2016environmental, olds2016estimating, ford2016estimation, braukmann2019} that reported results from mock (i.e., synthetic) eDNA communities useful for our purposes. These papers provided the number of PCR cycles used, the starting concentrations of DNA for a variety of taxa, the primers used, and the ending counts of amplicon reads; such data allowed us to calculate taxon-specific amplification efficiencies for each primer set (Supp. Table 1). We estimated the  parameters for a univariate beta distribution to the observations for each primer, and used the beta parameters to inform our simulations (see below; Figure 2).
+
+\textit{Case A: Amplifies Most Taxa, but Few Very Well or Very Poorly} 
+	For eukaryotes, several primers have been widely used in metabarcoding studies because they amplify eukaryotic taxa across many domains of life (Leray COI primers \cite{leray_new_2013} or the Stoeck 18S primers \cite{stoeck_multiple_2010}). It is not yet clear what the distribution of amplification efficiencies is for these primers across Eukaryota, but given the breadth of observed taxonomic coverage (e.g., \cite{leray_dna_2015, kelly2017multilocus}) here we model these efficiencies using a beta distribution ($\alpha=5$, $\beta=5$), with a mean of 0.5 and a standard deviation of 0.15. 	
+
+\textit{Case B: Amplifies Few Taxa Well, Most Taxa Poorly}. 
+	If we envision the sampled community as being made up of one thousand eukaryotic species, the primers developed for broad-spectrum use and widely useful for population genetics are likely to have a right-skewed distribution when viewed at the scale of Eukaryota.  We model this as a beta distribution ($\alpha = 0.5$, $\beta = 1.5$) with mean 0.25 and standard deviation 0.26. For example, metazoan 16S primers developed in Kelly et al. 2016 \cite{kelly2016genetic} amplify very poorly the single-celled photosynthesizers that comprise the majority of eukaryotic DNA in marine environments. Instead, this primer set amplifies animal DNA well and almost exclusively; the result will be a right-skewed  distribution (i.e., a mode near zero with a long tail in the positive direction) at the scale of Eukaryota.
+	 
+\textit{Case C: Amplifies a single taxonomic group well, most taxa poorly or not at all } 
+	The third use-case is analogous to specialized primers used in taxon-specific metabarcoding studies, such as those targeting vertebrates specifically \cite{riaz_ecoprimers:_2011, port2016assessing, miya2015mifish, yamamoto2017environmental}. These target a narrow range of species for a particular survey purpose, and consequently amplify a very small fraction of eukaryotic life present in most environments.  For the marine environment, we envision a primer that amplifies vertebrate species (e.g., fish and marine mammals) well but amplifies non-vertebrate taxa little or not at all. We note that qPCR primers are an extreme case of this distribution, in which the primer set exclusively amplifies a single taxon. We model this as a mixture of two distributions: one for the target taxon, and one for other eukaryotes present in the environment. Using parameters derived from \cite{hanfling2016environmental} (see Supplementary Table 1), we model the target-taxon component as a Beta distribution ($\alpha = 2.1$, $\beta = 0.58$; 10\% of the taxa present), and non-target component as Beta ($\alpha = 0.01$, $\beta = 10$; 90\% of the taxa present).	
+	
+\textbf{DNA Sequencing (\textit{process 5})}.  Finally, the number of sequencing reads for species $i$, $Y_{i}$, is proportional to $A_{i}$. The resulting community of eDNA reads is a Multinomial sample of between $10^5$ and $10^6$ reads out of a total of $10^7$ reads -- the size of an average Illumina MiSeq run -- from the community of amplicons present. The result is a set of replicate samples that varies in read-depth, consistent with common outcomes of MiSeq (and similar) sequencing runs.
+
+\begin{equation}
+	$$	P_{samp} \sim Beta(30,30) $$ \\
+	$$	\boldsymbol{Y} \sim Multinomial\Big(\dfrac{A}{\Sigma_i A_i},P_{samp}\times10^6 \Big) $$
+\end{equation}	
+
+where $\boldsymbol{Y}$ is a vector containing the observed amplicon counts for the 1000 species.
+\end{quote}
+
+\subsection*{Analyses of Simulations}
+
+We used the simulation results for eDNA to understand the characteristics of eDNA data with respect to two important areas of ecological research: estimating biodiversity and providing quantitative estimates of abundance. For both diversity and abundance investigations, we compare estimates across our three simulated community biomass distributions and the three amplification cases at standardized endpoint of 35 PCR cycles.
+
+All of the above simulations and calculations were carried out in R ver 3.5.1 \cite{r3.5.1} most prominently using packages tidyverse \cite{tidyverse} and vegan \cite{vegan}; all code and related data are available as supplementary material and at \url{https://github.com/invertdna/eDNA_Process_Simulations}. 
+
+\subsection*{Biodiversity}
+
+\subsubsection*{Effect of PCR Cycle-Number on Sequence Diversity}
+We examined the effect of the numbers of PCR cycles under three primer efficiency scenarios (Cases A, B, and C above) on over 100 communities of 1000 taxa each, with biomass distributed according to our moderately variable scenario ($\gamma = 5$). We sampled each community at 5-cycle intervals from  5 to 50 PCR cycles. We estimated sequence diversity using two of the most commonly used metrics of biodiversity, species richness and Shannon diversity. Richness is simply the number of unique taxa identified in the eDNA results, whereas Shannon takes into account both the number of unique taxa as well as their relative frequency. 
+
+We note that there is a very large literature examining the measurement and partitioning of diversity \cite{jost2007partitioning,chao2014unifying,hill1973diversity}, and that many different indices have been used to capture the diversity of a community. We include only richness and Shannon diversity here because they are commonly used and they aptly illustrate the issues that arise from using metabarcoding data for studies of biodiversity.
+
+\subsubsection*{Effect of Amplification Bias and Underlying Biomass on Sequence Diversity}
+
+To test for the effect of among-taxon amplification bias, we compared biodiversity estimates derived from the three amplification efficiency cases described above and for the three biomass distributions (uniform, low variability, high variability). Each taxon (or equivalently, each unique template molecule) was assigned a fixed amplification efficiency drawn from the case-specific amplification distribution.  For all simulations, we compare results after 35 PCR cycles for 100 replicate simulated communities of 1000 taxa each.
+%we again carried out 100 simulations of 1000 taxa each. Biomass was distributed according to three different abundance distributions -- uniform, less-variable, and more-variable -- as described above. We modeled amplification bias -- that is, the propensity of a given set of PCR primers to bind with and amplify some template molecules more readily than others -- using amplification efficiency parameters as described above.  PCR is in reality a competitive process, such that template DNA favored in the early cycles of a reaction are disproportionately represented in the ensuing cycles. Here we assign each taxon (or equivalently, each unique template molecule) a fixed amplification efficiency for the whole of a PCR simulation, which adequately captures these dynamics. To isolate the effect of amplification bias, this set of simulations keeps the number of PCR cycles constant at 35.
+
+\subsection*{Quantifying Biomass with Metabarcoding}
+
+An aspirational use of eDNA technology is to determine the abundance or biomass of particular species \cite{deagle_quantifying_2013, tillotson2018concentrations, jungbluth_measuring_2013, diaz-real_ngs_2015, lacoursiere2015quantifying}.  While research using qPCR or ddPCR technology suggests using single species genetic approaches can yield quantitative estimates of abundance \cite{shelton2019chinook, doi2015use, takahara2012estimation}, the relationship between amplicon sequence counts and organismal abundance is not straightforward. In particular, single metabarcoded samples in space or time tell us little about the underlying biomass of surveyed organisms, because the amplification efficiencies of each taxon are generally unknown.  However, indices of amplicon abundance -- reflecting temporal or spatial trends in taxon-specific amplicon abundance -- have mirrored biomass in practice \cite{port2016assessing}. 
+
+We expect each taxon to have a different amplification efficiency for a given set of PCR primers and therefore expect a poor correlation between eDNA amplicon abundance and biomass abundance when analyzing a dataset of many taxa in a single sample. However, we investigate whether a temporal series of samples can solve this problem; if we assume that amplification efficiency is solely a product of primer-template interaction (and is thus independent of community composition), amplification efficiency remains constant within a taxon across samples. We can then express DNA abundance for each species at each time point as using several alternative metrics (described below) and ask which metrics are likely to be useful for describing the biomass of individual species. 
+%We can then normalize amplicon abundance (expressed as a proportion of eDNA reads generated in a community sample) for each taxon individually, across samples, and derive an index of eDNA abundance that varies from zero to one within the sample set. 
+
+Importantly, this approach relies on the assumption that we need not know a taxon's efficiency in absolute terms; only that it remains constant across samples. This assumption holds true at least for suites of samples containing identical sets of taxa at different concentrations \cite{port2016assessing} or samples containing varying subsets of taxa drawn from a common pool \cite{hanfling2016environmental}. These references show nearly identical within-taxon amplification efficiencies derived from different starting communities: R$^2$ = 0.98 (p = 10$^{-8}$, N = 2 communities of 10 fish species at different concentrations using 12s primers; \cite{port2016assessing}), and median R$^2$ = 0.94 and 0.91 (p $<$ 0.01, N = 10 communities of subsets of six fish species drawn from a pool of 10; 12s primers and Cytochrome B primers, respectively; \cite{hanfling2016environmental}). See Supplementary Information for calculations. 
+
+To test the quantitative relationship between biomass and various amplicon-abundance indices, we conducted the simulations described above for 25 time points (spatial points are conceptually equivalent). For each timepoint, we assumed each species randomly varied around a stable abundance and drew a proportional biomass for each species from a symmetric Dirichlet distribution ($\gamma = 5$) as described above.  We then simulated amplifications of each of these communities with a single primer set (Case A, symmetrical) after 35 PCR cycles. To evaluate the performance of a variety of amplicon-based indices, we correlated the biomass of each taxon (N = 1000 in total simulated community, not all of which amplify with the selected primer set) at each time-point (N = 25) against eDNA abundance metrics, reporting the distribution of correlation coefficients (Spearman's $\rho$) as a summary measure of each index's quantitative relationship to biomass. We compared each of these to a null distribution derived by randomizing the eDNA amplicon matrix (such that median $\rho \approx$ 0). 
+
+Because it is unclear which amplicon summary statistics should be most useful to explain the relationship with biomass, we evaluated a range of indices of amplicon abundance (numbered directly below) against the species specific proportion biomass over the 25 time points.  For each equation below, $i$ indexes species and $j$ indexes sample.
+
+\begin{enumerate}
+  \setlength\itemsep{-.1em}
+	\item Raw amplicon read-counts
+	\item An index of read-count proportions, scaled 0 to 1 ("eDNA Index"; as used in \cite{port2016assessing}). Note this is a linear correlate of the $\chi^2$ transformation in \cite{legendre2001ecologically}, of amplicon proportions within a sample, and of the geometric-mean-based adjustment in DESeq2 \cite{love_moderated_2014}, and so those are not included here. It is also identical to the ``Wisconsin double-standardization'', as implemented in vegan \cite{vegan}, with appropriate margins specified. All behave identically.
+	\begin{equation}
+		$$eDNA_{ij} = \dfrac{\dfrac{Y_{ij}}{\Sigma_i Y_i}}{max_{j}(\dfrac{Y_{ij}}{\Sigma_i Y_i})}$$ 
+	\end{equation}
+			 
+	\item Amplicon frequency within a sample, $Freq$, calculated such that the average of non-zero taxa is 1 (method ``frequency'' in the vegan function ``decostand'' \cite{vegan, oksanen1983ordination})
+% Amplicon Frequency by sample total. The wording could be: Amplicon frequency, calculated as the number of reads from taxa i in sample j divided by the sample total and multiplied by the number of taxa in sample j 
+\begin{equation}
+	$$Freq_{ij} = \dfrac{Y_{ij}}{\Sigma_i Y_i} N_{j}$$
+\end{equation}
+	\item Normalized amplicon counts (sample sum-of-squares equal to one)
+% In which the number of reads from taxa i in sample j is divided by the square root of the sum of the squared value of each taxa in that sample 
+\begin{equation}
+	$$NCounts_{ij} = \dfrac{Y_{ij}}{\sqrt{\Sigma_i Y_i ^{ 2}}}$$
+\end{equation}
+	\item Rank order of amplicon abundance, excluding zeros
+	\item Hellinger distance, a scaled square-root transformation of read counts as defined in \cite{legendre2001ecologically} and implemented in \cite{vegan}
+	\item $log_2(x) + 1$ for values $>0$, as implemented in vegan function ``decostand", method ``log" \cite{vegan}
+\end{enumerate}
+
+Having measured the performance of these indices by their correlations with simulated taxon biomass, we then decomposed these results to measure the effect of amplicon abundance and amplification efficiency on index performance.
+
+\vspace{2em}
+
+\section{Results}\label{results}
+
+\subsection{Diversity Results}
+
+\subsubsection*{Effect of PCR Cycles}
+
+Our eDNA metabarcoding simulations reveal a strong effect of the number of PCR cycles on estimates of biodiversity (Figure 3A). Increasing the number of PCR cycles decreased both richness and Shannon diversity, but the shape and severity of this decline depended upon the distribution of amplification efficiencies. 
+
+The simulated primer set efficiently amplifying the fewest taxa (Case C) experienced the greatest decline in richness, with a median of only 88 out of 1000 taxa present detected after 20 cycles (N = 100 simulations). This fraction detected mirrors the proportion of taxa amplified with a relative efficiency of greater than approximately 0.6 in the underlying distribution of amplification efficiencies (0.088). By contrast, a primer set that readily amplifies most target taxa (here, Case A, with 63\% of the taxa amplifying at efficiency 0.6 or better) predictably recovered the greatest richness, with 973 out of 1000 taxa (median, N = 100) recovered after 20 cycles, and 650 after 40 cycles. Shannon Index values showed similar trends (Figure 3B). 
+
+Diversity metrics change rapidly with increasing cycle numbers; for example, estimated richness might fall by half or more between cycle 30 and cycle 40 as in Case B. Such dramatic changes with small analytical differences have two immediate implications: the importance of maintaining consistent procedures within a project (such that results are comparable among samples), and the difficulty of comparing results across datasets generated with even subtly different methods. Furthermore, given that the proportions of eDNA reads are only poorly correlated with the proportions of biomass in most cases (see Results below), the absolute magnitudes of the Shannon Index and similar traditional summary statistics -- which depend upon the proportions of each taxon in a community -- likely have little meaning in metabarcoding studies.
+
+Case C highlights a notable exception to this idea: a taxon-specific primer, amplifying a small fraction of the total species present, appears stably reflect the richness of the target amplified group after the first few PCR cycles (Figure 3A).
+
+The species-accumulation curves reflect the substantial effect of PCR cycle number of detected richness (Figure 4). These curves illustrate that diversity measures depending upon the slope of species accumulation are themselves strongly influenced by the number of PCR cycles.
+
+\subsection*{Effect of Amplification Bias}
+
+Holding the number of PCR cycles constant -- here, for illustration, at 35 cycles -- different primer sets yield radically different estimates of diversity in the same simulated communities (Figure 5). More narrowly targeted primer sets predictably reflect lower richness. These findings are consistent with other simulations (\cite{pinol2019choice}) and with empirical results (e.g., \cite{kelly2017multilocus}), and underscore the broader finding that different primer sets reveal different suites of taxa from a given environment. 
+
+Notably, primer sets performed similarly across quite different distributions of underlying biomass (Figure 5). We can apportion the variance in results attributable to differences in underlying biomass vs. primer-amplification efficiency, keeping the distribution of shedding rates constant, to examine the effects of each. Primer set accounted for more than 99\% of the variation in richness, with biomass distribution accounting for far less than 1\% (ANOVA; R$^2$ = 0.996 and 0.0016, p $< 10^{-16}$ for each). Biomass had a greater influence on Shannon indices, although primer set remained the dominant source of variance (ANOVA; R$^2$ = 0.865 and 0.118, p  $< 10^{-16}$ for each).  These results suggest that metabarcoding results are quite robust to different underlying distributions of biomass, which may or may not be an advantage of the sampling technique, depending on the aims of a particular study.
+
+The probability of detecting any taxon therefore depends upon its amplification efficiency for a given set of primers, and to a much lesser extent, the underlying distribution of biomass or shedding rate (Figure 6). For taxa at a particular amplification efficiency, higher-variance community biomass distributions may lead to higher variance in detectability among taxa. For example, within the median (i.e., fifth) decile bin of amplification efficiency, the variance in likelihood of detection ranged over two orders of magnitude, from $10^{-4}$ (uniform biomass) to $10^{-3}$ (moderately variable biomass distribution) to $10^{-2}$ (more-variable biomass distribution). In sum, communities with greater variability in biomass of target taxa are likely to yield somewhat noisier eDNA datasets, but the qualitative trends appear approximately constant across different biomass distributions. 
+
+
+\subsection*{Quantitative eDNA Indices}
+
+Within a given community sample (representing a single timepoint, or equivalently, a single point in space), biomass is only modestly correlated with eDNA abundance (Figure 7; grey vertical lines; median $\rho$ = 0.12 - 0.495, biomass vs. different eDNA-abundance indices). 
+
+When we used the replicate sampling of species across all 25 timepoints, however, many of the indices of eDNA-derived taxon abundance were highly correlated with true biomass (Figure 7). In particular, the index of eDNA-read proportions (``eDNA index'') behaved particularly well, with a median $\rho$ of 0.87, and a mode 0.97. For ease of understanding, the eDNA Index is a double-transformation: first, converting amplicon read-counts to proportions (within a sample), and second, scaling the resulting proportions of each read-variant (or OTU, taxon, etc) to the largest observed proportion (across samples) for that read-variant. Various other indices also reliably tracked biomass (Figure 7). All indices perform significantly better than the null expectation derived from the permutation test (Kolmogorov-Smirnoff test, p $< 10^{-16}$). This result suggests metabarcoding studies can indeed reveal detailed information on the abundance of individual taxa. 
+
+
+Taxa with greater amplicon abundances tended to better reflect biomass across all indices investigated (Figure 7, darker shades). For example, for taxa in the first (lowest) quartile of log read abundance, the median eDNA index - biomass $\rho$ is 0.4; this rises to $\rho$ = 0.77, 0.93, and 0.97 for the second, third, and fourth quartiles respectively. This pattern is likely a function of greater statistical power to detect trends among more-common amplicons, because rare taxa are subject to much greater proportional sampling error. 
+
+Moreover, because amplicon abundance depends primarily upon amplification efficiency rather than biomass, the eDNA index almost precisely (median $\rho$ = 0.96) tracked taxa with a relative amplification efficiency of greater than approximately 0.6 -- regardless of whether their underlying biomass was common or rare (Figure 8). At lower amplification efficiencies, amplicon indexing fails entirely, with the biomass correlation approaching the null distribution when amplification efficiency fell below 0.35 (median  $\rho$ = 0.09). We suggest the rarity of inefficient amplicons after 35 cycles -- combined with process error associated with PCR ($\epsilon$, in our simulation) and stochastic variability in read-depth -- explains this stochasticity. 
+
+Building amplicon indices across different primer sets for the same underlying biological community \cite{djurhuus2019eDNA} is a way of creating an ensemble index that can better capture biological dynamics than any single primer set can alone (Supp. Fig 4).
+
+
+\section{Discussion}\label{discussion}
+
+As genetic-based monitoring and discovery tools grow in popularity for ecological applications, it is increasingly important to understand the mechanisms underlying sampling technologies and how these methods affect inferences about ecological communities. We use simulations to identify how two researcher-defined processes in particular -- primer choice and the associated amplification distribution, and the number of PCR cycles -- can have dramatic consequences for estimates of biodiversity.  Additionally, we show how reliable metrics of biomass may be derived from metabarcoding surveys. Together our results help to explain the behavior of PCR-based surveys and suggest clear avenues for integrating eDNA data more fully into ecological applications.
+
+Our simulations suggest three principal conclusions broadly relevant to eDNA work:
+
+\begin{enumerate}
+	\item Traditional ecological diversity metrics -- such as richness and the Shannon Index -- shift substantially with small changes of PCR-based protocols, to the extent that such metrics may not be comparable across methods or studies. Taxon-specific primer sets are likely to be an exception to this rule because, with a narrow range of target taxa out of the available pool, their results stabilize after a few PCR cycles.
+	\item The results of community-wide diversity studies depend even more strongly on the choice of PCR primers. Amplification- efficiency explains amplicon abundance to a far greater extent than does underlying biomass within a sample.   
+	\item However, because amplification efficiency is approximately constant for a given taxon and primer set, changes in taxon-specific abundance indices reliably and quantitatively track changes in biomass over space or time. Primer-taxon pairings with relatively high amplification efficiencies are particularly effective in this regard.
+	\end{enumerate}
+
+We discuss these conclusions in turn below, before suggesting best practices for applying them in the field. 
+
+\subsection*{Exponential Growth: Effect of PCR Cycle Number}
+
+Decades after microbial ecologists embraced PCR-based methods \citep[e.g.,][]{fuhrman1993phylogenetic}, PCR-based surveys have begun to radically change the way molecular ecologists work with the visible world around them. In mixed-template applications, PCR serves a dual purpose: first, it selects particular DNA fragments of interest; and second, it amplifies these fragments for analysis. In the bargain, however, PCR radically distorts the underlying proportions of biomass as a result of amplification bias \cite{polz1998bias}. 
+
+Our simulation shows metabarcoding fails to recover the true value of two traditional biodiversity metrics after as few as 25 PCR cycles. Importantly, the magnitude of difference between the estimated and true values of diversity varies strongly with the distribution of amplification efficiencies, suggesting that results from each combination of primer set and target community will vary unpredictably. And because both exponential amplification and primer bias obscure proportions of species' biomass, we note that the absolute values of Shannon Index and most other ecological summary statistics -- which depend upon species proportions -- are likely meaningless in the metabarcoding context. 
+
+But measurements of local richness ($\alpha$ diversity) and other diversity statistics are rarely studied for just one sample; scientists are often interested on its variation across systems or through an environmental gradient. We find recovered $\alpha$ diversity and Shannon Index depend principally on the distribution of amplification efficiencies across the taxa and number of PCR cycles; thus if the same analytical techniques are used consistently, the results will likely accurately reflect relative patterns of diversity.
+
+Similarly, we find after the first few PCR cycles, each cycle greatly magnifies the difference between true and recovered diversity, such that small differences in protocol strongly affect results. Usually PCR protocols are consistent within a project, thus allowing for comparisons between samples processed with a shared protocol, but our results underscore the value of consistent analytical technique. This observation also complicates the prospects for meta-analysis of eDNA-sequencing studies.
+
+\subsection*{Amplification Bias: Effect of PCR Efficiency}
+
+Different PCR primer sets result in vastly different suites of eDNA amplicons \cite{kelly2017multilocus}, an effect described more than twenty years ago in the microbial context \cite{suzuki1996bias}. Our simulations suggest the mechanism for such differences is the primer-template interaction, and in particular, the efficiency of amplification: we show -- unsurprisingly -- that different distributions of amplification efficiencies greatly affect estimates of biodiversity. This result makes clear that metabarcoding studies are not necessarily comparable across systems. 
+
+Our simulation suggested amplification-efficiency (i.e., primer bias) had a 630-fold greater impact on richness than did the underlying biomass proportion. This result highlights both a strength and a weakness of eDNA work: depending upon the primer set, the resulting amplicons may at the same time reflect relatively rare taxa and fail to reflect relatively common taxa in a sampled environment. 
+
+\subsection*{Testing Quantitative eDNA Indices}
+
+Primer-template bias largely determines the outcome of metabarcoding studies, however, primer-template interaction appears to remain constant across different pools of potential amplicons. As a result, taxon-specific indices constructed from multiple samples taken over time or space appear to quantitatively reflect changes in underlying biomass. Our ``eDNA Index'' -- which, again, is simply an adaptation of transformations that have long existed in ecology -- tracks changes in biomass quite closely both in simulations (as here) and in practice (e.g., \cite{port2016assessing, shelton2019chinook}. Given that many survey applications demand a degree of quantification, we view this as an important finding. Nevertheless, we note that a quantitative index is not the same thing as counting actual target species. Tying the changes in an eDNA index to an actual number of individuals of a species (or kilograms of biomass), for example, will likely require calibrating the index against samples of known composition in a field setting. 
+
+\subsection*{Best Practices}
+
+Mindful of the recommendations contained in series of existing review papers on eDNA \cite{Deagle2019391, Stat2017, Murray2015Frombenchtop}, we offer the following suggestions for standardizing eDNA techniques in light of our own findings. 
+
+\begin{itemize}
+	\item To maximize diversity detected with a given primer set, minimize PCR cycles, preferably fewer than 35. 
+	\item Keep PCR protocols strictly consistent across samples you wish to compare.
+	\item Do not compare absolute values of richness, Shannon Index, or similar metrics across studies. 
+	\item Be specific about a target organismal or ecological group before sampling, in order to define the species expected and a denominator for total expected diversity. This may take iteration and experience with a particular primer set. 
+	\item For each primer set, estimate the distribution of amplification efficiencies within your target group using mock communities or other calibration techniques. This will set an expectation for the fraction of target taxa recovered and define amplification bias among the recovered species. 
+	\item Carry out a temporal or spatial series of samples in order to track organismal changes using an index of eDNA abundance.
+\end{itemize}
+
+
+\section{Conclusion}\label{Conclusion}
+
+The results of metabarcoding studies differ dramatically from those of traditional, non-PCR-based sampling methods as a result of the PCR process itself. This exponential process means that 1) small changes in laboratory technique can yield large differences in outcomes, 2) PCR-based assays likely act differently on every target species, 3) there is consequently no one-to-one correspondence between the number of assigned reads in an eDNA study and the abundance of the source organism, and 4) neither might we expect a universally strong correlation in estimates of taxon-richness between eDNA and traditional methods. 
+
+Nevertheless, the power of metabarcoding surveys is undeniable: the technique reveals hundreds or thousands of taxa in every sample, and can easily distinguish ecological communities among habitats and sampling sites. Many practical applications demand some quantification of organisms -- for example, fisheries stock assessments, or population surveys for endangered species -- and so understanding the processes linking amplicon reads to species' biomass or counts is particularly relevant for making eDNA a standard source of data for ecological sampling. By focusing on the processes by which metabarcoding results arise, we have developed a picture of the specific ways in which these might -- and might not -- be compared to other survey techniques, and in the process, have provided a quantitative means of tracking changes in environmental samples.
+
+We note that our results are consistent with \cite{mclaren2019consistent} -- a draft of which became available at approximately the same time as our original manuscript submission -- which treats quite similar subject matter from a statistical, rather than molecular biological, perspective. Taken together, along with other recent work such as \cite{pinol2019choice} and \cite{elbrecht2015can}, a common understanding of the processes underlying PCR-based studies appears to be coalescing.
+
+
+
+\subsection{Author Contributions}\label{authorContributions}
+
+RG conceived the project, edited the manuscript, and provided routine feedback during development. AOS contributed significant philosophical and statistical expertise, edited the manuscript, drafted some of the final text, and consulted during project development. RPK carried out the main analyses, wrote the main manuscript text, and prepared the figures. All authors reviewed the manuscript.
+
+\subsection{Acknowledgements}\label{acknowledgements}
+
+We are grateful to M. Stoeckle, J. Ausubel, and the other organizers of the 2018 National Conference on Marine Environmental DNA at Rockefeller University for providing us an opportunity to think through these issues. We thank Emily Jacobs-Palmer for thoughtful input and consistent support. We thank K. Cribari for lab assistance, as well as the UW Center for Environmental Genomics and Linda Park's lab at NOAA Fisheries. The reviews of an editor and (especially) one anonymous reviewer were very helpful in improving the manuscript. A version of this manuscript appeared on bioRxiv.org (\url{https://doi.org/10.1101/660530}) under its pre-peer-review title, ``Understanding Environmental DNA.''
+
+\subsection{Additional Information}\label{additional}
+
+The author(s) declare no competing interests.
+
+\subsection{Data Availability}
+
+All materials, analytical code, and resulting data are available as supplementary files accompanying this manuscript, as well as on GitHub at \url{https://github.com/invertdna/eDNA_Process_Simulations}. 
+
+\clearpage
+
+%\bibliography{PCRlib-1.bib}
+\bibliographystyle{plain}
+
+\begin{thebibliography}{10}
+\expandafter\ifx\csname url\endcsname\relax
+  \def\url#1{\texttt{#1}}\fi
+\expandafter\ifx\csname urlprefix\endcsname\relax\def\urlprefix{URL }\fi
+\expandafter\ifx\csname doiprefix\endcsname\relax\def\doiprefix{DOI }\fi
+\providecommand{\bibinfo}[2]{#2}
+\providecommand{\eprint}[2][]{\url{#2}}
+
+\bibitem{rondon2000cloning}
+\bibinfo{author}{Rondon, M.~R.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Cloning the soil metagenome: a
+  strategy for accessing the genetic and functional diversity of uncultured
+  microorganisms}}.
+\newblock {\emph{\JournalTitle{Appl. Environ. Microbiol.}}}
+  \textbf{\bibinfo{volume}{66}}, \bibinfo{pages}{2541--2547}
+  (\bibinfo{year}{2000}).
+
+\bibitem{ogram1987extraction}
+\bibinfo{author}{Ogram, A.}, \bibinfo{author}{Sayler, G.~S.} \&
+  \bibinfo{author}{Barkay, T.}
+\newblock \bibinfo{journal}{\bibinfo{title}{The extraction and purification of
+  microbial {DNA} from sediments}}.
+\newblock {\emph{\JournalTitle{Journal of microbiological methods}}}
+  \textbf{\bibinfo{volume}{7}}, \bibinfo{pages}{57--66} (\bibinfo{year}{1987}).
+
+\bibitem{turnbaugh2007human}
+\bibinfo{author}{Turnbaugh, P.~J.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{The human microbiome project}}.
+\newblock {\emph{\JournalTitle{Nature}}} \textbf{\bibinfo{volume}{449}},
+  \bibinfo{pages}{804} (\bibinfo{year}{2007}).
+
+\bibitem{port2016assessing}
+\bibinfo{author}{Port, J.~A.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Assessing vertebrate biodiversity
+  in a kelp forest ecosystem using environmental {DNA}}}.
+\newblock {\emph{\JournalTitle{Molecular Ecology}}}
+  \textbf{\bibinfo{volume}{25}}, \bibinfo{pages}{527--541}
+  (\bibinfo{year}{2016}).
+
+\bibitem{stat2017ecosystem}
+\bibinfo{author}{Stat, M.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Ecosystem biomonitoring with edna:
+  metabarcoding across the tree of life in a tropical marine environment}}.
+\newblock {\emph{\JournalTitle{Scientific Reports}}}
+  \textbf{\bibinfo{volume}{7}}, \bibinfo{pages}{12240} (\bibinfo{year}{2017}).
+
+\bibitem{kelly_using_2014}
+\bibinfo{author}{Kelly, R.~P.}, \bibinfo{author}{Port, J.~A.},
+  \bibinfo{author}{Yamahara, K.~M.} \& \bibinfo{author}{Crowder, L.~B.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Using environmental {DNA} to census
+  marine fishes in a large mesocosm}}.
+\newblock {\emph{\JournalTitle{PloS One}}} \textbf{\bibinfo{volume}{9}},
+  \bibinfo{pages}{e86175} (\bibinfo{year}{2014}).
+\newblock \urlprefix\url{http://dx.plos.org/10.1371/journal.pone.0086175}.
+
+\bibitem{valentini2016next}
+\bibinfo{author}{Valentini, A.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Next-generation monitoring of
+  aquatic biodiversity using environmental {DNA} metabarcoding}}.
+\newblock {\emph{\JournalTitle{Molecular Ecology}}}
+  \textbf{\bibinfo{volume}{25}}, \bibinfo{pages}{929--942}
+  (\bibinfo{year}{2016}).
+
+\bibitem{taberlet_towards_2012}
+\bibinfo{author}{Taberlet, P.}, \bibinfo{author}{Coissac, E.},
+  \bibinfo{author}{Pompanon, F.}, \bibinfo{author}{Brochmann, C.} \&
+  \bibinfo{author}{Willerslev, E.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Towards next-generation
+  biodiversity assessment using {DNA} metabarcoding}}.
+\newblock {\emph{\JournalTitle{Molecular Ecology}}}
+  \textbf{\bibinfo{volume}{21}}, \bibinfo{pages}{2045--2050}
+  (\bibinfo{year}{2012}).
+\newblock
+  \urlprefix\url{http://onlinelibrary.wiley.com/doi/10.1111/j.1365-294X.2012.05470.x/full}.
+
+\bibitem{de2015eukaryotic}
+\bibinfo{author}{De~Vargas, C.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Eukaryotic plankton diversity in
+  the sunlit ocean}}.
+\newblock {\emph{\JournalTitle{Science}}} \textbf{\bibinfo{volume}{348}},
+  \bibinfo{pages}{1261605} (\bibinfo{year}{2015}).
+
+\bibitem{li2018estimating}
+\bibinfo{author}{Li, Y.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Estimating fish alpha-and
+  beta-diversity along a small stream with environmental {DNA} metabarcoding}}.
+\newblock {\emph{\JournalTitle{Metabarcoding and Metagenomics}}}
+  \textbf{\bibinfo{volume}{2}}, \bibinfo{pages}{e24262} (\bibinfo{year}{2018}).
+
+\bibitem{deiner2016environmental}
+\bibinfo{author}{Deiner, K.}, \bibinfo{author}{Fronhofer, E.~A.},
+  \bibinfo{author}{M{\"a}chler, E.}, \bibinfo{author}{Walser, J.-C.} \&
+  \bibinfo{author}{Altermatt, F.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Environmental {DNA} reveals that
+  rivers are conveyer belts of biodiversity information}}.
+\newblock {\emph{\JournalTitle{Nature communications}}}
+  \textbf{\bibinfo{volume}{7}}, \bibinfo{pages}{12544} (\bibinfo{year}{2016}).
+
+\bibitem{kelly2017multilocus}
+\bibinfo{author}{Kelly, R.~P.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Genetic and manual survey methods
+  yield different and complementary views of an ecosystem}}.
+\newblock {\emph{\JournalTitle{Frontiers in Marine Science}}}
+  \textbf{\bibinfo{volume}{3}}, \bibinfo{pages}{283} (\bibinfo{year}{2017}).
+\newblock
+  \urlprefix\url{http://journal.frontiersin.org/article/10.3389/fmars.2016.00283}.
+\newblock \doiprefix 10.3389/fmars.2016.00283.
+
+\bibitem{smart2015environmental}
+\bibinfo{author}{Smart, A.~S.}, \bibinfo{author}{Tingley, R.},
+  \bibinfo{author}{Weeks, A.~R.}, \bibinfo{author}{van Rooyen, A.~R.} \&
+  \bibinfo{author}{McCarthy, M.~A.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Environmental {DNA} sampling is
+  more sensitive than a traditional survey technique for detecting an aquatic
+  invader}}.
+\newblock {\emph{\JournalTitle{Ecological Applications}}}
+  \textbf{\bibinfo{volume}{25}}, \bibinfo{pages}{1944--1952}
+  (\bibinfo{year}{2015}).
+
+\bibitem{evans2017comparative}
+\bibinfo{author}{Evans, N.~T.}, \bibinfo{author}{Shirey, P.~D.},
+  \bibinfo{author}{Wieringa, J.~G.}, \bibinfo{author}{Mahon, A.~R.} \&
+  \bibinfo{author}{Lamberti, G.~A.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Comparative cost and effort of fish
+  distribution detection via environmental {DNA} analysis and electrofishing}}.
+\newblock {\emph{\JournalTitle{Fisheries}}} \textbf{\bibinfo{volume}{42}},
+  \bibinfo{pages}{90--99} (\bibinfo{year}{2017}).
+
+\bibitem{knudsen2019species}
+\bibinfo{author}{Knudsen, S.~W.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Species-specific detection and
+  quantification of environmental {DNA} from marine fishes in the baltic sea}}.
+\newblock {\emph{\JournalTitle{Journal of experimental marine biology and
+  ecology}}} \textbf{\bibinfo{volume}{510}}, \bibinfo{pages}{31--45}
+  (\bibinfo{year}{2019}).
+
+\bibitem{pawluczyk2015quantitative}
+\bibinfo{author}{Pawluczyk, M.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Quantitative evaluation of bias in
+  {PCR} amplification and next-generation sequencing derived from metabarcoding
+  samples}}.
+\newblock {\emph{\JournalTitle{Analytical and Bioanalytical Chemistry}}}
+  \textbf{\bibinfo{volume}{407}}, \bibinfo{pages}{1841--1848}
+  (\bibinfo{year}{2015}).
+
+\bibitem{odonnellPrimers}
+\bibinfo{author}{O'Donnell, J.~L.}, \bibinfo{author}{Kelly, R.~P.},
+  \bibinfo{author}{Lowell, N.~C.} \& \bibinfo{author}{Port, J.~A.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Indexed {PCR} primers induce
+  template-specific bias in large-scale {DNA} sequencing studies}}.
+\newblock {\emph{\JournalTitle{PloS one}}} \textbf{\bibinfo{volume}{11}},
+  \bibinfo{pages}{e0148698} (\bibinfo{year}{2016}).
+
+\bibitem{deagle_quantifying_2013}
+\bibinfo{author}{Deagle, B.~E.}, \bibinfo{author}{Thomas, A.~C.},
+  \bibinfo{author}{Shaffer, A.~K.}, \bibinfo{author}{Trites, A.~W.} \&
+  \bibinfo{author}{Jarman, S.~N.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Quantifying sequence proportions in
+  a {DNA}-based diet study using {Ion} {Torrent} amplicon sequencing: which
+  counts count?}}
+\newblock {\emph{\JournalTitle{Molecular Ecology Resources}}}
+  \textbf{\bibinfo{volume}{13}}, \bibinfo{pages}{620--633}
+  (\bibinfo{year}{2013}).
+\newblock
+  \urlprefix\url{http://onlinelibrary.wiley.com/doi/10.1111/1755-0998.12103/full}.
+
+\bibitem{polz1998bias}
+\bibinfo{author}{Polz, M.~F.} \& \bibinfo{author}{Cavanaugh, C.~M.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Bias in template-to-product ratios
+  in multitemplate {PCR}}}.
+\newblock {\emph{\JournalTitle{Appl. Environ. Microbiol.}}}
+  \textbf{\bibinfo{volume}{64}}, \bibinfo{pages}{3724--3730}
+  (\bibinfo{year}{1998}).
+
+\bibitem{suzuki1996bias}
+\bibinfo{author}{Suzuki, M.~T.} \& \bibinfo{author}{Giovannoni, S.~J.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Bias caused by template annealing
+  in the amplification of mixtures of 16s {rRNA} genes by {PCR}.}}
+\newblock {\emph{\JournalTitle{Appl. Environ. Microbiol.}}}
+  \textbf{\bibinfo{volume}{62}}, \bibinfo{pages}{625--630}
+  (\bibinfo{year}{1996}).
+
+\bibitem{elbrecht2015can}
+\bibinfo{author}{Elbrecht, V.} \& \bibinfo{author}{Leese, F.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Can {DNA}-based ecosystem
+  assessments quantify species abundance? testing primer bias and
+  biomass—sequence relationships with an innovative metabarcoding protocol}}.
+\newblock {\emph{\JournalTitle{PloS one}}} \textbf{\bibinfo{volume}{10}},
+  \bibinfo{pages}{e0130324} (\bibinfo{year}{2015}).
+
+\bibitem{mclaren2019consistent}
+\bibinfo{author}{McLaren, M.~R.}, \bibinfo{author}{Willis, A.~D.} \&
+  \bibinfo{author}{Callahan, B.~J.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Consistent and correctable bias in
+  metagenomic sequencing measurements}}.
+\newblock {\emph{\JournalTitle{BioRxiv}}} \bibinfo{pages}{559831}
+  (\bibinfo{year}{2019}).
+
+\bibitem{pinol2019choice}
+\bibinfo{author}{Pi{\~n}ol, J.}, \bibinfo{author}{Senar, M.~A.} \&
+  \bibinfo{author}{Symondson, W.~O.}
+\newblock \bibinfo{journal}{\bibinfo{title}{The choice of universal primers and
+  the characteristics of the species mixture determine when {DNA} metabarcoding
+  can be quantitative}}.
+\newblock {\emph{\JournalTitle{Molecular ecology}}}
+  \textbf{\bibinfo{volume}{28}}, \bibinfo{pages}{407--419}
+  (\bibinfo{year}{2019}).
+
+\bibitem{bellemain2010its}
+\bibinfo{author}{Bellemain, E.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Its as an environmental {DNA}
+  barcode for fungi: an in silico approach reveals potential {PCR} biases}}.
+\newblock {\emph{\JournalTitle{BMC Microbiology}}}
+  \textbf{\bibinfo{volume}{10}}, \bibinfo{pages}{189} (\bibinfo{year}{2010}).
+
+\bibitem{clarke2014environmental}
+\bibinfo{author}{Clarke, L.~J.}, \bibinfo{author}{Soubrier, J.},
+  \bibinfo{author}{Weyrich, L.~S.} \& \bibinfo{author}{Cooper, A.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Environmental metabarcodes for
+  insects: in silico {PCR} reveals potential for taxonomic bias}}.
+\newblock {\emph{\JournalTitle{Molecular Ecology Resources}}}
+  \textbf{\bibinfo{volume}{14}}, \bibinfo{pages}{1160--1170}
+  (\bibinfo{year}{2014}).
+
+\bibitem{gloor2017microbiome}
+\bibinfo{author}{Gloor, G.~B.}, \bibinfo{author}{Macklaim, J.~M.},
+  \bibinfo{author}{Pawlowsky-Glahn, V.} \& \bibinfo{author}{Egozcue, J.~J.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Microbiome datasets are
+  compositional: and this is not optional}}.
+\newblock {\emph{\JournalTitle{Frontiers in microbiology}}}
+  \textbf{\bibinfo{volume}{8}}, \bibinfo{pages}{2224} (\bibinfo{year}{2017}).
+
+\bibitem{thomsen_detection_2012-1}
+\bibinfo{author}{Thomsen, P.~F.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Detection of a diverse marine fish
+  fauna using environmental {DNA} from seawater samples}}.
+\newblock {\emph{\JournalTitle{PLoS One}}} \textbf{\bibinfo{volume}{7}},
+  \bibinfo{pages}{e41732} (\bibinfo{year}{2012}).
+\newblock \urlprefix\url{http://dx.plos.org/10.1371/journal.pone.0041732}.
+
+\bibitem{sassoubre2016quantification}
+\bibinfo{author}{Sassoubre, L.~M.}, \bibinfo{author}{Yamahara, K.~M.},
+  \bibinfo{author}{Gardner, L.~D.}, \bibinfo{author}{Block, B.~A.} \&
+  \bibinfo{author}{Boehm, A.~B.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Quantification of environmental
+  {DNA} ({eDNA}) shedding and decay rates for three marine fish}}.
+\newblock {\emph{\JournalTitle{Environmental Science \& Technology}}}
+  \textbf{\bibinfo{volume}{50}}, \bibinfo{pages}{10456--10464}
+  (\bibinfo{year}{2016}).
+
+\bibitem{deiner_transport_2014-1}
+\bibinfo{author}{Deiner, K.} \& \bibinfo{author}{Altermatt, F.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Transport {Distance} of
+  {Invertebrate} {Environmental} {DNA} in a {Natural} {River}}}.
+\newblock {\emph{\JournalTitle{PLoS One}}} \textbf{\bibinfo{volume}{9}},
+  \bibinfo{pages}{e88786} (\bibinfo{year}{2014}).
+\newblock \urlprefix\url{http://dx.doi.org/10.1371/journal.pone.0088786}.
+\newblock \doiprefix 10.1371/journal.pone.0088786.
+
+\bibitem{wilcox2016understanding}
+\bibinfo{author}{Wilcox, T.~M.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Understanding environmental {DNA}
+  detection probabilities: A case study using a stream-dwelling char salvelinus
+  fontinalis}}.
+\newblock {\emph{\JournalTitle{Biological Conservation}}}
+  \textbf{\bibinfo{volume}{194}}, \bibinfo{pages}{209--216}
+  (\bibinfo{year}{2016}).
+
+\bibitem{chen2004dna}
+\bibinfo{author}{Chen, I.} \& \bibinfo{author}{Dubnau, D.}
+\newblock \bibinfo{journal}{\bibinfo{title}{{DNA} uptake during bacterial
+  transformation}}.
+\newblock {\emph{\JournalTitle{Nature Reviews Microbiology}}}
+  \textbf{\bibinfo{volume}{2}}, \bibinfo{pages}{241} (\bibinfo{year}{2004}).
+
+\bibitem{lorenz1987adsorption}
+\bibinfo{author}{Lorenz, M.~G.} \& \bibinfo{author}{Wackernagel, W.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Adsorption of {DNA} to sand and
+  variable degradation rates of adsorbed {DNA}.}}
+\newblock {\emph{\JournalTitle{Appl. Environ. Microbiol.}}}
+  \textbf{\bibinfo{volume}{53}}, \bibinfo{pages}{2948--2952}
+  (\bibinfo{year}{1987}).
+
+\bibitem{shelton2016framework}
+\bibinfo{author}{Shelton, A.~O.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{A framework for inferring
+  biological communities from environmental dna}}.
+\newblock {\emph{\JournalTitle{Ecological Applications}}}
+  (\bibinfo{year}{2016}).
+
+\bibitem{Condit1996}
+\bibinfo{author}{Condit, R.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Species-area and species-individual
+  relationships for tropical trees: A comparison of three 50-ha plots}}.
+\newblock {\emph{\JournalTitle{Journal of Ecology}}}
+  \textbf{\bibinfo{volume}{84}}, \bibinfo{pages}{549--562}
+  (\bibinfo{year}{1996}).
+\newblock \urlprefix\url{http://www.jstor.org/stable/2261477}.
+\newblock \doiprefix https://doi.org/10.2307/2261477.
+
+\bibitem{mora2003patterns}
+\bibinfo{author}{Mora, C.}, \bibinfo{author}{Chittaro, P.~M.},
+  \bibinfo{author}{Sale, P.~F.}, \bibinfo{author}{Kritzer, J.~P.} \&
+  \bibinfo{author}{Ludsin, S.~A.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Patterns and processes in reef fish
+  diversity}}.
+\newblock {\emph{\JournalTitle{Nature}}} \textbf{\bibinfo{volume}{421}},
+  \bibinfo{pages}{933} (\bibinfo{year}{2003}).
+
+\bibitem{witman2004relationship}
+\bibinfo{author}{Witman, J.~D.}, \bibinfo{author}{Etter, R.~J.} \&
+  \bibinfo{author}{Smith, F.}
+\newblock \bibinfo{journal}{\bibinfo{title}{The relationship between regional
+  and local species diversity in marine benthic communities: a global
+  perspective}}.
+\newblock {\emph{\JournalTitle{Proceedings of the National Academy of
+  Sciences}}} \textbf{\bibinfo{volume}{101}}, \bibinfo{pages}{15664--15669}
+  (\bibinfo{year}{2004}).
+
+\bibitem{riaz_ecoprimers:_2011}
+\bibinfo{author}{Riaz, T.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{{ecoPrimers}: inference of new
+  {DNA} barcode markers from whole genome sequence analysis}}.
+\newblock {\emph{\JournalTitle{Nucleic Acids Research}}}
+  \textbf{\bibinfo{volume}{39}}, \bibinfo{pages}{e145--e145}
+  (\bibinfo{year}{2011}).
+\newblock
+  \urlprefix\url{http://nar.oxfordjournals.org/content/39/21/e145.short}.
+
+\bibitem{yamamoto2017environmental}
+\bibinfo{author}{Yamamoto, S.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Environmental {DNA} metabarcoding
+  reveals local fish communities in a species-rich coastal sea}}.
+\newblock {\emph{\JournalTitle{Scientific Reports}}}
+  \textbf{\bibinfo{volume}{7}}, \bibinfo{pages}{40368} (\bibinfo{year}{2017}).
+
+\bibitem{braukmann2019}
+\bibinfo{author}{Braukmann, T. W.~A.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Metabarcoding a diverse arthropod
+  mock community}}.
+\newblock {\emph{\JournalTitle{Molecular Ecology Resources}}}
+  \textbf{\bibinfo{volume}{0}}.
+\newblock
+  \urlprefix\url{https://onlinelibrary.wiley.com/doi/abs/10.1111/1755-0998.13008}.
+\newblock \doiprefix 10.1111/1755-0998.13008.
+\newblock
+  \eprint{https://onlinelibrary.wiley.com/doi/pdf/10.1111/1755-0998.13008}.
+
+\bibitem{Ruitger2009}
+\bibinfo{author}{Moorman, A. F.~M.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{{Amplification efficiency: linking
+  baseline and bias in the analysis of quantitative {PCR} data}}}.
+\newblock {\emph{\JournalTitle{Nucleic Acids Research}}}
+  \textbf{\bibinfo{volume}{37}}, \bibinfo{pages}{e45--e45}
+  (\bibinfo{year}{2009}).
+\newblock \urlprefix\url{https://dx.doi.org/10.1093/nar/gkp045}.
+\newblock \doiprefix 10.1093/nar/gkp045.
+\newblock
+  \eprint{http://oup.prod.sis.lan/nar/article-pdf/37/6/e45/18783355/gkp045.pdf}.
+
+\bibitem{hanfling2016environmental}
+\bibinfo{author}{H{\"a}nfling, B.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Environmental {DNA} metabarcoding
+  of lake fish communities reflects long-term data from established survey
+  methods}}.
+\newblock {\emph{\JournalTitle{Molecular Ecology}}}
+  \textbf{\bibinfo{volume}{25}}, \bibinfo{pages}{3101--3119}
+  (\bibinfo{year}{2016}).
+
+\bibitem{olds2016estimating}
+\bibinfo{author}{Olds, B.~P.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Estimating species richness using
+  environmental {DNA}}}.
+\newblock {\emph{\JournalTitle{Ecology and Evolution}}}
+  \textbf{\bibinfo{volume}{6}}, \bibinfo{pages}{4214--4226}
+  (\bibinfo{year}{2016}).
+
+\bibitem{ford2016estimation}
+\bibinfo{author}{Ford, M.~J.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Estimation of a killer whale
+  (orcinus orca) population's diet using sequencing analysis of {DNA} from
+  feces}}.
+\newblock {\emph{\JournalTitle{Plos One}}} \textbf{\bibinfo{volume}{11}},
+  \bibinfo{pages}{e0144956} (\bibinfo{year}{2016}).
+
+\bibitem{leray_new_2013}
+\bibinfo{author}{Leray, M.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{A new versatile primer set
+  targeting a short fragment of the mitochondrial {COI} region for
+  metabarcoding metazoan diversity: application for characterizing coral reef
+  fish gut contents}}.
+\newblock {\emph{\JournalTitle{Frontiers in Zoology}}}
+  \textbf{\bibinfo{volume}{10}}, \bibinfo{pages}{34} (\bibinfo{year}{2013}).
+\newblock
+  \urlprefix\url{http://www.biomedcentral.com/content/pdf/1742-9994-10-34.pdf}.
+
+\bibitem{stoeck_multiple_2010}
+\bibinfo{author}{Stoeck, T.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Multiple marker parallel tag
+  environmental {DNA} sequencing reveals a highly complex eukaryotic community
+  in marine anoxic water}}.
+\newblock {\emph{\JournalTitle{Molecular Ecology}}}
+  \textbf{\bibinfo{volume}{19}}, \bibinfo{pages}{21--31}
+  (\bibinfo{year}{2010}).
+\newblock
+  \urlprefix\url{http://onlinelibrary.wiley.com/doi/10.1111/j.1365-294X.2009.04480.x/full}.
+
+\bibitem{leray_dna_2015}
+\bibinfo{author}{Leray, M.} \& \bibinfo{author}{Knowlton, N.}
+\newblock \bibinfo{journal}{\bibinfo{title}{{DNA} barcoding and metabarcoding
+  of standardized samples reveal patterns of marine benthic diversity}}.
+\newblock {\emph{\JournalTitle{Proceedings of the National Academy of
+  Sciences}}} \bibinfo{pages}{201424997} (\bibinfo{year}{2015}).
+\newblock
+  \urlprefix\url{http://www.pnas.org/content/early/2015/01/27/1424997112.short}.
+
+\bibitem{kelly2016genetic}
+\bibinfo{author}{Kelly, R.~P.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Genetic signatures of ecological
+  diversity along an urbanization gradient}}.
+\newblock {\emph{\JournalTitle{PeerJ}}} \textbf{\bibinfo{volume}{4}},
+  \bibinfo{pages}{e2444} (\bibinfo{year}{2016}).
+
+\bibitem{miya2015mifish}
+\bibinfo{author}{Miya, M.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Mifish, a set of universal {PCR}
+  primers for metabarcoding environmental {DNA} from fishes: detection of more
+  than 230 subtropical marine species}}.
+\newblock {\emph{\JournalTitle{Royal Society Open Science}}}
+  \textbf{\bibinfo{volume}{2}}, \bibinfo{pages}{150088} (\bibinfo{year}{2015}).
+
+\bibitem{r3.5.1}
+\bibinfo{author}{{R Core Team}}.
+\newblock \emph{\bibinfo{title}{R: A Language and Environment for Statistical
+  Computing}}.
+\newblock \bibinfo{organization}{R Foundation for Statistical Computing},
+  \bibinfo{address}{Vienna, Austria} (\bibinfo{year}{2018}).
+\newblock \urlprefix\url{https://www.R-project.org/}.
+
+\bibitem{tidyverse}
+\bibinfo{author}{Wickham, H.}
+\newblock \emph{\bibinfo{title}{tidyverse: Easily Install and Load the
+  'Tidyverse'}} (\bibinfo{year}{2017}).
+\newblock \urlprefix\url{https://CRAN.R-project.org/package=tidyverse}.
+\newblock \bibinfo{note}{R package version 1.2.1}.
+
+\bibitem{vegan}
+\bibinfo{author}{Oksanen, J.} \emph{et~al.}
+\newblock \emph{\bibinfo{title}{vegan: Community Ecology Package}}
+  (\bibinfo{year}{2015}).
+\newblock \urlprefix\url{http://CRAN.R-project.org/package=vegan}.
+\newblock \bibinfo{note}{R package version 2.3-1}.
+
+\bibitem{jost2007partitioning}
+\bibinfo{author}{Jost, L.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Partitioning diversity into
+  independent alpha and beta components}}.
+\newblock {\emph{\JournalTitle{Ecology}}} \textbf{\bibinfo{volume}{88}},
+  \bibinfo{pages}{2427--2439} (\bibinfo{year}{2007}).
+\newblock
+  \urlprefix\url{https://esajournals.onlinelibrary.wiley.com/doi/abs/10.1890/06-1736.1}.
+\newblock \doiprefix 10.1890/06-1736.1.
+\newblock
+  \eprint{https://esajournals.onlinelibrary.wiley.com/doi/pdf/10.1890/06-1736.1}.
+
+\bibitem{chao2014unifying}
+\bibinfo{author}{Chao, A.}, \bibinfo{author}{Chiu, C.-H.} \&
+  \bibinfo{author}{Jost, L.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Unifying species diversity,
+  phylogenetic diversity, functional diversity, and related similarity and
+  differentiation measures through hill numbers}}.
+\newblock {\emph{\JournalTitle{Annual Review of Ecology, Evolution, and
+  Systematics}}} \textbf{\bibinfo{volume}{45}}, \bibinfo{pages}{297--324}
+  (\bibinfo{year}{2014}).
+
+\bibitem{hill1973diversity}
+\bibinfo{author}{Hill, M.~O.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Diversity and evenness: a unifying
+  notation and its consequences}}.
+\newblock {\emph{\JournalTitle{Ecology}}} \textbf{\bibinfo{volume}{54}},
+  \bibinfo{pages}{427--432} (\bibinfo{year}{1973}).
+
+\bibitem{tillotson2018concentrations}
+\bibinfo{author}{Tillotson, M.~D.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Concentrations of environmental
+  {DNA} ({eDNA}) reflect spawning salmon abundance at fine spatial and temporal
+  scales}}.
+\newblock {\emph{\JournalTitle{Biological Conservation}}}
+  \textbf{\bibinfo{volume}{220}}, \bibinfo{pages}{1--11}
+  (\bibinfo{year}{2018}).
+
+\bibitem{jungbluth_measuring_2013}
+\bibinfo{author}{Jungbluth, M.~J.}, \bibinfo{author}{Goetze, E.} \&
+  \bibinfo{author}{Lenz, P.~H.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Measuring copepod naupliar
+  abundance in a subtropical bay using quantitative {PCR}}}.
+\newblock {\emph{\JournalTitle{Marine Biology}}}
+  \textbf{\bibinfo{volume}{160}}, \bibinfo{pages}{3125--3141}
+  (\bibinfo{year}{2013}).
+\newblock
+  \urlprefix\url{http://link.springer.com/article/10.1007/s00227-013-2300-y}.
+\newblock \doiprefix 10.1007/s00227-013-2300-y.
+
+\bibitem{diaz-real_ngs_2015}
+\bibinfo{author}{Diaz-Real, J.}, \bibinfo{author}{Serrano, D.},
+  \bibinfo{author}{Piriz, A.} \& \bibinfo{author}{Jovani, R.}
+\newblock \bibinfo{journal}{\bibinfo{title}{{NGS} metabarcoding proves
+  successful for quantitative assessment of symbiont abundance: the case of
+  feather mites on birds}}.
+\newblock {\emph{\JournalTitle{Experimental and Applied Acarology}}}
+  \bibinfo{pages}{1--10} (\bibinfo{year}{2015}).
+\newblock
+  \urlprefix\url{http://link.springer.com/article/10.1007/s10493-015-9944-x}.
+\newblock \doiprefix 10.1007/s10493-015-9944-x.
+
+\bibitem{lacoursiere2015quantifying}
+\bibinfo{author}{Lacoursi{\`e}re-Roussel, A.}, \bibinfo{author}{C{\^o}t{\'e},
+  G.}, \bibinfo{author}{Leclerc, V.} \& \bibinfo{author}{Bernatchez, L.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Quantifying relative fish abundance
+  with {eDNA}: a promising tool for fisheries management}}.
+\newblock {\emph{\JournalTitle{Journal of Applied Ecology}}}
+  (\bibinfo{year}{2015}).
+
+\bibitem{shelton2019chinook}
+\bibinfo{author}{Shelton, A.~O.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Environmental {DNA} provides
+  quantitative estimates of a threatened salmon species}}.
+\newblock {\emph{\JournalTitle{Biological Conservation}}}
+  (\bibinfo{year}{submitted}).
+
+\bibitem{doi2015use}
+\bibinfo{author}{Doi, H.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Use of droplet digital {PCR} for
+  estimation of fish abundance and biomass in environmental {DNA} surveys}}.
+\newblock {\emph{\JournalTitle{PloS one}}} \textbf{\bibinfo{volume}{10}},
+  \bibinfo{pages}{e0122763} (\bibinfo{year}{2015}).
+
+\bibitem{takahara2012estimation}
+\bibinfo{author}{Takahara, T.}, \bibinfo{author}{Minamoto, T.},
+  \bibinfo{author}{Yamanaka, H.}, \bibinfo{author}{Doi, H.} \&
+  \bibinfo{author}{Kawabata, Z.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Estimation of fish biomass using
+  environmental {DNA}}}.
+\newblock {\emph{\JournalTitle{PloS one}}} \textbf{\bibinfo{volume}{7}},
+  \bibinfo{pages}{e35868} (\bibinfo{year}{2012}).
+
+\bibitem{legendre2001ecologically}
+\bibinfo{author}{Legendre, P.} \& \bibinfo{author}{Gallagher, E.~D.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Ecologically meaningful
+  transformations for ordination of species data}}.
+\newblock {\emph{\JournalTitle{Oecologia}}} \textbf{\bibinfo{volume}{129}},
+  \bibinfo{pages}{271--280} (\bibinfo{year}{2001}).
+
+\bibitem{love_moderated_2014}
+\bibinfo{author}{Love, M.~I.}, \bibinfo{author}{Huber, W.} \&
+  \bibinfo{author}{Anders, S.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Moderated estimation of fold change
+  and dispersion for {RNA}-seq data with {DESeq}2}}.
+\newblock {\emph{\JournalTitle{Genome Biology}}} \textbf{\bibinfo{volume}{15}},
+  \bibinfo{pages}{550} (\bibinfo{year}{2014}).
+\newblock \urlprefix\url{http://genomebiology.com/2014/15/12/550/abstract}.
+\newblock \doiprefix 10.1186/s13059-014-0550-8.
+
+\bibitem{oksanen1983ordination}
+\bibinfo{author}{Oksanen, J.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Ordination of boreal heath-like
+  vegetation with principal component analysis, correspondence analysis and
+  multidimensional scaling}}.
+\newblock {\emph{\JournalTitle{Vegetatio}}} \textbf{\bibinfo{volume}{52}},
+  \bibinfo{pages}{181--189} (\bibinfo{year}{1983}).
+
+\bibitem{djurhuus2019eDNA}
+\bibinfo{author}{Djurhuus, A.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Microbes to mammals: Detecting
+  ecosystem shifts through environmental dna}}.
+\newblock {\emph{\JournalTitle{Nature Ecology and Evolution}}}
+  (\bibinfo{year}{Submitted}).
+
+\bibitem{fuhrman1993phylogenetic}
+\bibinfo{author}{Fuhrman, J.~A.}, \bibinfo{author}{McCallum, K.} \&
+  \bibinfo{author}{Davis, A.~A.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Phylogenetic diversity of
+  subsurface marine microbial communities from the atlantic and pacific
+  oceans.}}
+\newblock {\emph{\JournalTitle{Appl. Environ. Microbiol.}}}
+  \textbf{\bibinfo{volume}{59}}, \bibinfo{pages}{1294--1302}
+  (\bibinfo{year}{1993}).
+
+\bibitem{Deagle2019391}
+\bibinfo{author}{Deagle, B.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Counting with {DNA} in
+  metabarcoding studies: How should we convert sequence reads to dietary
+  data?}}
+\newblock {\emph{\JournalTitle{Molecular Ecology}}}
+  \textbf{\bibinfo{volume}{28}}, \bibinfo{pages}{391--406}
+  (\bibinfo{year}{2019}).
+\newblock
+  \urlprefix\url{https://www.scopus.com/inward/record.uri?eid=2-s2.0-85060520238&doi=10.1111%2fmec.14734&partnerID=40&md5=5a2ad426bbc65c701aac3f6b11d9d0e7}.
+\newblock \doiprefix 10.1111/mec.14734.
+\newblock \bibinfo{note}{Cited By 11}.
+
+\bibitem{Stat2017}
+\bibinfo{author}{Stat, M.} \emph{et~al.}
+\newblock \bibinfo{journal}{\bibinfo{title}{Ecosystem biomonitoring with
+  {eDNA}: Metabarcoding across the tree of life in a tropical marine
+  environment}}.
+\newblock {\emph{\JournalTitle{Scientific Reports}}}
+  \textbf{\bibinfo{volume}{7}} (\bibinfo{year}{2017}).
+\newblock
+  \urlprefix\url{https://www.scopus.com/inward/record.uri?eid=2-s2.0-85029831643&doi=10.1038%2fs41598-017-12501-5&partnerID=40&md5=5af8efc8501331c344e3433194220117}.
+\newblock \doiprefix 10.1038/s41598-017-12501-5.
+\newblock \bibinfo{note}{Cited By 25}.
+
+\bibitem{Murray2015Frombenchtop}
+\bibinfo{author}{Murray, D.~C.}, \bibinfo{author}{Coghlan, M.~L.} \&
+  \bibinfo{author}{Bunce, M.}
+\newblock \bibinfo{journal}{\bibinfo{title}{From benchtop to desktop: Important
+  considerations when designing amplicon sequencing workflows}}.
+\newblock {\emph{\JournalTitle{Plos One}}} \textbf{\bibinfo{volume}{10}},
+  \bibinfo{pages}{1--21} (\bibinfo{year}{2015}).
+\newblock \urlprefix\url{https://doi.org/10.1371/journal.pone.0124671}.
+\newblock \doiprefix 10.1371/journal.pone.0124671.
+
+\end{thebibliography}
+
+
+
+\clearpage
+
+\section*{Figures}
+
+
+%FIGURE 1: Biomass Distributions
+\begin{figure}[!hbt]
+\begin{center}
+\includegraphics[width = .5\textwidth]{../../Figures/BiomassDistributions.pdf}
+\caption{Distribution of proportional biomass in the three types of ecological communities simulated.}
+\end{center}
+\end{figure}
+
+
+%FIGURE 2: Amplification Efficiency Distributions
+\begin{figure}[!hbt]
+  %\captionsetup{width=.6\linewidth}
+\begin{center}
+  \includegraphics[width = .4\textwidth]{../../Figures/AmplificationDistributions.pdf}
+  \caption{{%\footnotesize 
+  The distribution of amplification efficiencies for three eDNA use-cases.
+     \textbf{A}: amplifies most taxa, but few very well or very poorly (symmetrical; likely reflects the performance of broad-spectrum primers such as \cite{leray_new_2013} and \cite{stoeck_multiple_2010} acting upon eukaryotes);
+   	\textbf{B}: amplifies few taxa well, most taxa poorly (right-skewed; parameterized based upon \cite{deiner2016environmental}; see main text);   
+	\textbf{C}: amplifies a small number of taxa very well, but most not at all (parameterized based upon the performance of 12s primers \cite{riaz_ecoprimers:_2011} in detecting fish assemblages as described in \cite{hanfling2016environmental}; see main text)).  Note that qPCR primers are a special case of this last distribution.}}
+\end{center}
+\end{figure}
+
+
+%FIGURE 3: Amplification Efficiency Distributions
+\begin{figure}[!ht]
+\begin{center}
+\includegraphics[width = 0.8\textwidth]{../../Figures/SummaryStats_by_pcrCycles_and_ampDistribution.pdf}
+\caption{Summary statistics by PCR cycles for 100 simulated communities of 1000 taxa each, keeping amplification efficiency constant for each taxon. Three distributions of amplification efficiencies are shown, color-coded. The underlying biomass distribution is moderately variable ($\gamma = 5$, as described in Methods. A: richness, B: Shannon Index. Loess-smoothed lines are shown to illustrate trends.}
+\end{center}
+\end{figure}
+
+
+%FIGURE 4: Species-Accumulation Curves
+
+\begin{figure}[!ht]
+\begin{center}
+\includegraphics[width = 0.8\textwidth]{../../Figures/AccumulationCurve_Ncycles.pdf}
+\caption{The effect of PCR cycle number on species recovered. Species-accumulation curves for a single simulated community of 1000 target taxa and having moderately-variable proportional biomass, for each set of amplification efficiencies (panels), after simulated sequencing with different numbers of PCR cycles (color).}
+\end{center}
+\end{figure}
+
+
+%FIGURE 5: Amplification Efficiency Distributions
+\begin{figure}[!hbt]
+        \centering
+		  \includegraphics[width = 0.8\textwidth]{../../Figures/EffectAmpEfficiency_Richness_Shannon.pdf}
+		  \caption{Richness (A) and Shannon Index (B) by PCR cycles for 100 simulated communities of 1000 taxa each after 35 PCR cycles, varying amplification efficiency and varying underlying biomass distributions.}
+\end{figure}
+
+
+%FIGURE 6: Probability of Detection as a Function of Amplification Efficiency
+\begin{figure}[!hbt]
+  \centering
+  \includegraphics[width = 0.5\textwidth]{../../Figures/LikelihoodDetection_by_AmpEfficiency_Biomass.pdf}
+  \caption{Probability of detection for 1000 simulated taxa after 35 PCR cycles across 100 replicate datasets, as a function of amplification efficiency. The underlying biomass distributions are shown in different colors, and logistic best-fit models added for clarity. The distribution of amplification efficiencies was held constant across datasets (Case A, symmetrical).}
+\end{figure}
+
+
+%FIGURE 7: Index Performance vs. Biomass
+\begin{figure}[!ht]
+\begin{center}
+  \includegraphics[width = .6\textwidth]{../../Figures/IndexPerformance.pdf}
+  \begin{singlespace*}
+  \caption{Histograms of Spearman's rank correlation coefficient ($\rho$), reflecting the relationships between simulated biomass and a variety of eDNA-abundance indices, for a set of 25 simulated time-series samples of a community of 1000 taxa. Shading refers to the quartile of log amplicon frequency; more abundant amplicons are shown in darker shades. Vertical grey lines reflect the median \textit{single-time-point} $\rho$ for that index vs. biomass. Bright red and dark red lines indicate medians and modes, respectively, for the \textit{time-series} indices. Median and mode lines calculated from the underlying data; binning may make maximum values appear different. Correlations calculated for taxa appearing in at least five of the 25 timepoints (i.e., 20\% incidence) to avoid many rank ties at zero abundance. The null dataset is the set of correlations between a randomly shuffled amplicon-count matrix and the biomass matrix; this results in a symmetrical distribution of $\rho$ with a mean of zero. Only positive values of the null distribution are shown.}
+    \end{singlespace*}
+\end{center}
+\end{figure}
+
+
+%FIGURE 8: eDNA Index Performance as Function of Amplification Efficiency
+\begin{figure}[!ht]
+\begin{center}
+  \includegraphics[width = .6\textwidth]{../../Figures/Rho_by_AmpEfficiency.pdf}
+  \caption{Using the eDNA Index, the biomass-index correlation coefficient ($\rho$) by amplification efficiency for each amplified taxon. Those taxa with a relative amplification efficiency $>= 0.6$ have particularly strong correlations (median $\rho$ = 0.96). As shown by shading, the eDNA Index behaves similarly for species with greater and lesser proportions of biomass in the community. Simulated biomass varied over two orders of magnitude across taxa; averaging across time-points narrows this range to a factor of two, and the relative mean biomass expressed here reflects that smaller range.}
+\end{center}
+\end{figure}
+
+
+\end{document}

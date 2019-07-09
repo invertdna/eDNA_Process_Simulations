@@ -20,7 +20,7 @@ library(patchwork)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, root.dir = here(), cache = T, set.seed(108))
 
 saveData = TRUE
-plottingFigures = TRUE 
+plottingFigures = FALSE 
 
 
 #note to future self, and anyone else reading this: I called Case B `left-skewed` in the variable names,
@@ -460,22 +460,77 @@ gsub(pattern = "eDNA_reads", replacement = "eDNA Reads") %>%
 ```{r accumulation curve by cycle number}
 ### For Supplementary Information
 
-accumm.sim.out <- as.data.frame(matrix(NA, nrow = 10, ncol = 1000))
-rowindex <- 1
-for (i in seq(5, 50, 5)){
-  accumm.sim.out[rowindex,] <- ampFunction(B = B.lessVariable,
-              ncycles = i, 
-              a = CaseA.approx.normal)
-  rowindex <- rowindex + 1
-  }
+accumm.sim.out.CaseA <- as.data.frame(matrix(NA, nrow = 10, ncol = 1000))
+accumm.sim.out.CaseB <- as.data.frame(matrix(NA, nrow = 10, ncol = 1000))
+accumm.sim.out.CaseC <- as.data.frame(matrix(NA, nrow = 10, ncol = 1000))
+#1000 simulations for each of 10 values of ncycles, for each of 3 amp efficiency distributions.
 
-accumm.sim.curves <- rarecurve(accumm.sim.out, step = 100, xlim = c(0, 10000), xlab = "Sample Size (reads)")
+            #CASE A
+            rowindex <- 1
+            for (i in seq(5, 50, 5)){
+              accumm.sim.out.CaseA[rowindex,] <- ampFunction(B = B.lessVariable,
+                          ncycles = i, 
+                          a = CaseA.approx.normal)
+              rowindex <- rowindex + 1
+              }
+            
+            accumm.sim.curves.CaseA <- rarecurve(accumm.sim.out.CaseA, 
+                                           step = 100, 
+                                           xlim = c(0, 10000), 
+                                           xlab = "Sample Size (reads)")
+            
+            accumm.sim.curves.CaseA <- plyr::ldply(accumm.sim.curves.CaseA, rbind) %>% 
+              mutate(Ncycles = seq(5, 50, 5),
+                     AmpEfficiency = "Case A") %>% 
+              gather(key = "SampleSize", value = "Ntaxa", -Ncycles, -AmpEfficiency) %>% 
+              mutate(SampleSize = gsub("N", "", SampleSize))
+            
+            
+            ##CASE B
+            rowindex <- 1
+            for (i in seq(5, 50, 5)){
+              accumm.sim.out.CaseB[rowindex,] <- ampFunction(B = B.lessVariable,
+                                                             ncycles = i, 
+                                                             a = CaseB.left.skewed)
+              rowindex <- rowindex + 1
+            }
+            
+            accumm.sim.curves.CaseB <- rarecurve(accumm.sim.out.CaseB, 
+                                                 step = 100, 
+                                                 xlim = c(0, 10000), 
+                                                 xlab = "Sample Size (reads)")
+            
+            accumm.sim.curves.CaseB <- plyr::ldply(accumm.sim.curves.CaseB, rbind) %>% 
+              mutate(Ncycles = seq(5, 50, 5),
+                     AmpEfficiency = "Case B") %>% 
+              gather(key = "SampleSize", value = "Ntaxa", -Ncycles, -AmpEfficiency) %>% 
+              mutate(SampleSize = gsub("N", "", SampleSize))
+            
+            ##CASE C
+            rowindex <- 1
+            for (i in seq(5, 50, 5)){
+              accumm.sim.out.CaseC[rowindex,] <- ampFunction(B = B.lessVariable,
+                                                             ncycles = i, 
+                                                             a = CaseC.riaz12s)
+              rowindex <- rowindex + 1
+            }
+            
+            accumm.sim.curves.CaseC <- rarecurve(accumm.sim.out.CaseC, 
+                                                 step = 100, 
+                                                 xlim = c(0, 10000), 
+                                                 xlab = "Sample Size (reads)")
+            
+            accumm.sim.curves.CaseC <- plyr::ldply(accumm.sim.curves.CaseC, rbind) %>% 
+              mutate(Ncycles = seq(5, 50, 5),
+                     AmpEfficiency = "Case C") %>% 
+              gather(key = "SampleSize", value = "Ntaxa", -Ncycles, -AmpEfficiency) %>% 
+              mutate(SampleSize = gsub("N", "", SampleSize))
 
-accumm.sim.curves <- plyr::ldply(accumm.sim.curves, rbind) %>% 
-  mutate(Ncycles = seq(5,50,5)) %>% 
-  gather(key = "SampleSize", value = "Ntaxa", -Ncycles) %>% 
-  mutate(SampleSize = gsub("N", "", SampleSize))
-
+            
+            accumm.sim.curves <- rbind(accumm.sim.curves.CaseA,
+                                       rbind(accumm.sim.curves.CaseB, 
+                                             accumm.sim.curves.CaseC))
+            
 ```
 
 
